@@ -1,12 +1,12 @@
 import { Outlet } from 'react-router-dom';
 import DesktopSidebar from './DesktopSidebar';
 import MobileNav from './MobileNav';
-import { Home, CalendarDays, Clock, User, Scissors } from 'lucide-react';
+import { Home, CalendarDays, Scissors, Clock, User } from 'lucide-react';
 
 const clienteNav = [
-  { icon: Home, label: 'Início', path: '/cliente/agenda' },
-  { icon: CalendarDays, label: 'Agendar', path: '/cliente/agenda' },
-  { icon: Scissors, label: 'Serviços', path: '/cliente/agenda' },
+  { icon: Home, label: 'Início', path: '/cliente/dashboard' },
+  { icon: CalendarDays, label: 'Agendar', path: '/cliente/agendar' },
+  { icon: Scissors, label: 'Serviços', path: '/cliente/servicos' },
   { icon: Clock, label: 'Histórico', path: '/cliente/historico' },
   { icon: User, label: 'Perfil', path: '/cliente/perfil' },
 ];
