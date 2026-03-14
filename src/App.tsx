@@ -20,8 +20,12 @@ import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 // Cliente pages
-import ClienteAgenda from "./pages/cliente/ClienteAgenda";
+import ClienteDashboard from "./pages/cliente/ClienteDashboard";
+import ClienteServicos from "./pages/cliente/ClienteServicos";
+import ClienteBarbeiros from "./pages/cliente/ClienteBarbeiros";
+import ClienteAgendar from "./pages/cliente/ClienteAgendar";
 import ClienteHistorico from "./pages/cliente/ClienteHistorico";
+import ClienteAvaliar from "./pages/cliente/ClienteAvaliar";
 import ClientePerfil from "./pages/cliente/ClientePerfil";
 
 // Barbeiro pages
@@ -61,8 +65,12 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route path="/cliente/agenda" element={<ClienteAgenda />} />
+              <Route path="/cliente/dashboard" element={<ClienteDashboard />} />
+              <Route path="/cliente/servicos" element={<ClienteServicos />} />
+              <Route path="/cliente/barbeiros" element={<ClienteBarbeiros />} />
+              <Route path="/cliente/agendar" element={<ClienteAgendar />} />
               <Route path="/cliente/historico" element={<ClienteHistorico />} />
+              <Route path="/cliente/avaliar/:id" element={<ClienteAvaliar />} />
               <Route path="/cliente/perfil" element={<ClientePerfil />} />
             </Route>
 
@@ -95,7 +103,8 @@ const App = () => (
             </Route>
 
             {/* Legacy redirects */}
-            <Route path="/agenda" element={<Navigate to="/cliente/agenda" replace />} />
+            <Route path="/cliente/agenda" element={<Navigate to="/cliente/dashboard" replace />} />
+            <Route path="/agenda" element={<Navigate to="/cliente/dashboard" replace />} />
             <Route path="/historico" element={<Navigate to="/cliente/historico" replace />} />
             <Route path="/perfil" element={<Navigate to="/cliente/perfil" replace />} />
 
