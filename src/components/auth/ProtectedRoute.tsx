@@ -37,6 +37,8 @@ export function getRoleHome(role: UserRole | null | undefined): string {
   switch (role) {
     case 'admin': return '/admin/agenda';
     case 'barbeiro': return '/barbeiro/dashboard';
+    case 'cliente': return '/cliente/dashboard';
+    case 'barbeiro': return '/barbeiro/dashboard';
     case 'cliente':
     default: return '/cliente/agenda';
   }
