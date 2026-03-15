@@ -30,7 +30,11 @@ import ClientePerfil from "./pages/cliente/ClientePerfil";
 
 // Barbeiro pages
 import BarbeiroDashboard from "./pages/barbeiro/BarbeiroDashboard";
-import BarbeiroAtendimentos from "./pages/barbeiro/BarbeiroAtendimentos";
+import BarbeiroAgenda from "./pages/barbeiro/BarbeiroAgenda";
+import BarbeiroAtendimentoManual from "./pages/barbeiro/BarbeiroAtendimentoManual";
+import BarbeiroHistorico from "./pages/barbeiro/BarbeiroHistorico";
+import BarbeiroGanhos from "./pages/barbeiro/BarbeiroGanhos";
+import BarbeiroPerfil from "./pages/barbeiro/BarbeiroPerfil";
 
 // Admin pages
 import AdminAgenda from "./pages/admin/AdminAgenda";
@@ -83,7 +87,11 @@ const App = () => (
               }
             >
               <Route path="/barbeiro/dashboard" element={<BarbeiroDashboard />} />
-              <Route path="/barbeiro/atendimentos" element={<BarbeiroAtendimentos />} />
+              <Route path="/barbeiro/agenda" element={<BarbeiroAgenda />} />
+              <Route path="/barbeiro/atendimento-manual" element={<BarbeiroAtendimentoManual />} />
+              <Route path="/barbeiro/historico" element={<BarbeiroHistorico />} />
+              <Route path="/barbeiro/ganhos" element={<BarbeiroGanhos />} />
+              <Route path="/barbeiro/perfil" element={<BarbeiroPerfil />} />
             </Route>
 
             {/* Admin */}
