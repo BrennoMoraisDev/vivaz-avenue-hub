@@ -30,7 +30,11 @@ import ClientePerfil from "./pages/cliente/ClientePerfil";
 
 // Barbeiro pages
 import BarbeiroDashboard from "./pages/barbeiro/BarbeiroDashboard";
-import BarbeiroAtendimentos from "./pages/barbeiro/BarbeiroAtendimentos";
+import BarbeiroAgenda from "./pages/barbeiro/BarbeiroAgenda";
+import BarbeiroAtendimentoManual from "./pages/barbeiro/BarbeiroAtendimentoManual";
+import BarbeiroHistorico from "./pages/barbeiro/BarbeiroHistorico";
+import BarbeiroGanhos from "./pages/barbeiro/BarbeiroGanhos";
+import BarbeiroPerfil from "./pages/barbeiro/BarbeiroPerfil";
 
 // Admin pages
 import AdminAgenda from "./pages/admin/AdminAgenda";

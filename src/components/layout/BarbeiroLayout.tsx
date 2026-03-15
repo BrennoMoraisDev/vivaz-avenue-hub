@@ -1,12 +1,15 @@
 import { Outlet } from 'react-router-dom';
 import DesktopSidebar from './DesktopSidebar';
 import MobileNav from './MobileNav';
-import { LayoutDashboard, Users, Clock } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, UserPlus, History, DollarSign, User } from 'lucide-react';
 
 const barbeiroNav = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/barbeiro/dashboard' },
-  { icon: Clock, label: 'Atendimentos', path: '/barbeiro/atendimentos' },
-  { icon: Users, label: 'Clientes do dia', path: '/barbeiro/dashboard' },
+  { icon: CalendarDays, label: 'Agenda', path: '/barbeiro/agenda' },
+  { icon: UserPlus, label: 'Atendimento', path: '/barbeiro/atendimento-manual' },
+  { icon: History, label: 'Histórico', path: '/barbeiro/historico' },
+  { icon: DollarSign, label: 'Ganhos', path: '/barbeiro/ganhos' },
+  { icon: User, label: 'Perfil', path: '/barbeiro/perfil' },
 ];
 
 const BarbeiroLayout = () => {
