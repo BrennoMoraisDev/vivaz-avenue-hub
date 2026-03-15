@@ -52,7 +52,7 @@ const BarbeiroAtendimentoManual = () => {
         setSaving(false);
         return;
       }
-      const { data, error } = await criarCliente(nomeNovo, telNovo);
+      const { data, error } = await criarCliente(nomeNovo, telNovo) as any;
       if (error || !data) {
         toast({ title: 'Erro ao criar cliente', description: error?.message, variant: 'destructive' });
         setSaving(false);

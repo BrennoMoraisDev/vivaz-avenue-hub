@@ -96,7 +96,7 @@ const BarbeiroGanhos = () => {
           {serviceData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
-                <Pie data={serviceData} dataKey="valor" nameKey="nome" cx="50%" cy="50%" outerRadius={90} label={({ nome }) => nome}>
+                <Pie data={serviceData} dataKey="valor" nameKey="nome" cx="50%" cy="50%" outerRadius={90} label={({ name }) => String(name)}>
                   {serviceData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
