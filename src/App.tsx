@@ -87,7 +87,11 @@ const App = () => (
               }
             >
               <Route path="/barbeiro/dashboard" element={<BarbeiroDashboard />} />
-              <Route path="/barbeiro/atendimentos" element={<BarbeiroAtendimentos />} />
+              <Route path="/barbeiro/agenda" element={<BarbeiroAgenda />} />
+              <Route path="/barbeiro/atendimento-manual" element={<BarbeiroAtendimentoManual />} />
+              <Route path="/barbeiro/historico" element={<BarbeiroHistorico />} />
+              <Route path="/barbeiro/ganhos" element={<BarbeiroGanhos />} />
+              <Route path="/barbeiro/perfil" element={<BarbeiroPerfil />} />
             </Route>
 
             {/* Admin */}
