@@ -171,7 +171,7 @@ export function useClientesSearch() {
 
 // Helper: update agendamento status
 export async function updateAgendamentoStatus(id: string, status: AgendamentoStatus) {
-  return supabase.from('agendamentos').update({ status } as any).eq('id', id);
+  return (supabase.from('agendamentos') as any).update({ status }).eq('id', id);
 }
 
 // Helper: insert manual appointment
