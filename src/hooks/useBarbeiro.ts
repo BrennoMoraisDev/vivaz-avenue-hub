@@ -171,7 +171,7 @@ export function useClientesSearch() {
 
 // Helper: update agendamento status
 export async function updateAgendamentoStatus(id: string, status: AgendamentoStatus) {
-  return supabase.from('agendamentos').update({ status }).eq('id', id);
+  return supabase.from('agendamentos').update({ status } as any).eq('id', id);
 }
 
 // Helper: insert manual appointment
@@ -189,12 +189,12 @@ export async function criarAtendimentoManual(params: {
     servico_id: params.servicoId,
     data: params.data,
     hora: params.hora,
-    status: 'finalizado',
+    status: 'finalizado' as AgendamentoStatus,
     observacao: params.observacao || 'Atendimento manual',
-  });
+  } as any);
 }
 
 // Helper: insert new client
 export async function criarCliente(nome: string, telefone: string) {
-  return supabase.from('clientes').insert({ nome, telefone }).select().single();
+  return supabase.from('clientes').insert({ nome, telefone } as any).select().single();
 }
