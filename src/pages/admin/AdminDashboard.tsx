@@ -83,7 +83,7 @@ const AdminDashboard = () => {
                   outerRadius={80}
                   dataKey="total"
                   nameKey="nome"
-                  label={({ nome, percent }) => `${nome} (${(percent * 100).toFixed(0)}%)`}
+                  label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}
                 >
                   {servicosMaisRealizados.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
