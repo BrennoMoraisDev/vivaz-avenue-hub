@@ -1,28 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Mail, Lock, Loader2, Crown } from 'lucide-react';
+import { getRoleHome } from '@/components/auth/ProtectedRoute';
+import { supabase } from '@/lib/supabase';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, user, profile } = useAuth();
   const navigate = useNavigate();
+
+  // Se já está logado e tem perfil, redireciona para o dashboard correto
+  useEffect(() => {
+    if (user && profile) {
+      navigate(getRoleHome(profile.role), { replace: true });
+    }
+  }, [user, profile, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { data, error } = await signIn(email, password);
     if (error) {
       setError('Email ou senha incorretos.');
+      setLoading(false);
+    } else if (data?.user) {
+      // Buscar o perfil do usuário para redirecionar corretamente
+      const { data: profileData } = await supabase
+        .from('perfis')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+      
+      const role = profileData?.role ?? 'cliente';
+      navigate(getRoleHome(role as any), { replace: true });
+      setLoading(false);
     } else {
-      navigate('/');
+      navigate('/', { replace: true });
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -67,7 +88,7 @@ const Login = () => {
 
             <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading}>
               {loading && <Loader2 size={16} className="animate-spin" />}
-              Entrar
+              ENTRAR
             </Button>
           </form>
 
