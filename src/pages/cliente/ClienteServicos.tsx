@@ -2,15 +2,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import ServiceCard from '@/components/cliente/ServiceCard';
-import { mockServicos, mockCategorias } from '@/data/mockData';
+import { useServicos } from '@/hooks/useServicos';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle } from 'lucide-react';
 
 const ClienteServicos = () => {
   const navigate = useNavigate();
+  const { servicos, categorias, loading } = useServicos();
   const [categoriaSel, setCategoriaSel] = useState<string | null>(null);
 
   const servicosFiltrados = categoriaSel
-    ? mockServicos.filter(s => s.ativo && s.categoria_id === categoriaSel)
-    : mockServicos.filter(s => s.ativo);
+    ? servicos.filter(s => s.categoria_id === categoriaSel)
+    : servicos;
 
   return (
     <PageContainer title="Serviços" subtitle="Conheça nossos serviços e agende o seu">
@@ -24,7 +27,7 @@ const ClienteServicos = () => {
         >
           Todos
         </button>
-        {mockCategorias.map(c => (
+        {categorias.map(c => (
           <button
             key={c.id}
             onClick={() => setCategoriaSel(c.id)}
@@ -38,18 +41,29 @@ const ClienteServicos = () => {
       </div>
 
       {/* Services grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {servicosFiltrados.map(s => (
-          <ServiceCard
-            key={s.id}
-            servico={s}
-            onAgendar={(id) => navigate(`/cliente/agendar?servico=${id}`)}
-          />
-        ))}
-      </div>
-
-      {servicosFiltrados.length === 0 && (
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-40 w-full rounded-xl" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : servicosFiltrados.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {servicosFiltrados.map(s => (
+            <ServiceCard
+              key={s.id}
+              servico={s}
+              onAgendar={(id) => navigate(`/cliente/agendar?servico=${id}`)}
+            />
+          ))}
+        </div>
+      ) : (
         <div className="glass rounded-2xl p-8 text-center">
+          <AlertCircle className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">Nenhum serviço encontrado nesta categoria.</p>
         </div>
       )}

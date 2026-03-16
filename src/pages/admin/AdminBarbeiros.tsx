@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { useBarbeiros, useHorariosBarbeiro, type Barbeiro, type HorarioBarbeiro } from '@/hooks/useAdmin';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,20 +14,26 @@ import { motion } from 'framer-motion';
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
-const emptyBarbeiro: Partial<Barbeiro> = {
+interface BarbeiroForm extends Partial<Barbeiro> {
+  email?: string;
+  senha?: string;
+}
+
+const emptyBarbeiro: BarbeiroForm = {
   nome: '', telefone: '', especialidade: '', comissao: 50, ativo: true, foto: '',
 };
 
 const AdminBarbeiros = () => {
-  const { barbeiros, loading, criar, atualizar, toggleAtivo } = useBarbeiros();
+  const { barbeiros, loading, criar, atualizar, toggleAtivo, refetch } = useBarbeiros();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [filtroAtivo, setFiltroAtivo] = useState<'todos' | 'ativo' | 'inativo'>('todos');
   const [modalOpen, setModalOpen] = useState(false);
   const [detalhesOpen, setDetalhesOpen] = useState(false);
-  const [editing, setEditing] = useState<Partial<Barbeiro>>(emptyBarbeiro);
+  const [editing, setEditing] = useState<BarbeiroForm>(emptyBarbeiro);
   const [selectedBarbeiro, setSelectedBarbeiro] = useState<Barbeiro | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isNewBarbeiro, setIsNewBarbeiro] = useState(false);
 
   const filtered = barbeiros.filter((b) => {
     const matchSearch = !search || (b.nome || '').toLowerCase().includes(search.toLowerCase());
@@ -40,10 +47,56 @@ const AdminBarbeiros = () => {
       toast({ title: 'Preencha nome e telefone', variant: 'destructive' });
       return;
     }
+
+    // If creating new barbeiro with email, use the create-barbeiro-user function
+    if (!editing.id && editing.email && isNewBarbeiro) {
+      setSaving(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch(
+          'https://okmuhustvzkbwxsfemxn.functions.supabase.co/create-barbeiro-user',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token || ''}`,
+            },
+            body: JSON.stringify({
+              nome: editing.nome,
+              email: editing.email,
+              telefone: editing.telefone,
+              especialidade: editing.especialidade,
+              comissao: editing.comissao,
+              senha: editing.senha,
+            }),
+          }
+        );
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+
+        toast({
+          title: 'Barbeiro criado com sucesso',
+          description: result.temporarySenha
+            ? `Senha temporária: ${result.temporarySenha}. O barbeiro deve alterar no primeiro login.`
+            : 'O barbeiro pode fazer login agora.',
+        });
+        setModalOpen(false);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await refetch();
+      } catch (error: any) {
+        toast({ title: 'Erro ao criar barbeiro', description: error.message, variant: 'destructive' });
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // Regular update/create without email
     setSaving(true);
     const { error } = editing.id
-      ? await atualizar(editing.id, editing)
-      : await criar(editing);
+      ? await atualizar(editing.id, editing as any)
+      : await criar(editing as any);
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: (error as any).message, variant: 'destructive' });
@@ -58,8 +111,8 @@ const AdminBarbeiros = () => {
     if (!error) toast({ title: b.ativo ? 'Barbeiro desativado' : 'Barbeiro ativado' });
   };
 
-  const openCreate = () => { setEditing({ ...emptyBarbeiro }); setModalOpen(true); };
-  const openEdit = (b: Barbeiro) => { setEditing({ ...b }); setModalOpen(true); };
+  const openCreate = () => { setEditing({ ...emptyBarbeiro }); setIsNewBarbeiro(true); setModalOpen(true); };
+  const openEdit = (b: Barbeiro) => { setEditing({ ...b }); setIsNewBarbeiro(false); setModalOpen(true); };
   const openDetalhes = (b: Barbeiro) => { setSelectedBarbeiro(b); setDetalhesOpen(true); };
 
   return (
@@ -168,6 +221,36 @@ const AdminBarbeiros = () => {
               <Label>Foto (URL)</Label>
               <Input value={editing.foto || ''} onChange={(e) => setEditing({ ...editing, foto: e.target.value })} placeholder="https://..." />
             </div>
+            {isNewBarbeiro && (
+              <>
+                <div>
+                  <Label>Email do Barbeiro {editing.email ? '' : '(opcional)'}</Label>
+                  <Input
+                    type="email"
+                    value={editing.email || ''}
+                    onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                    placeholder="barbeiro@email.com"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Se fornecido, o barbeiro poderá fazer login com suas credenciais.
+                  </p>
+                </div>
+                {editing.email && (
+                  <div>
+                    <Label>Senha Temporária (opcional)</Label>
+                    <Input
+                      type="password"
+                      value={editing.senha || ''}
+                      onChange={(e) => setEditing({ ...editing, senha: e.target.value })}
+                      placeholder="Deixe em branco para gerar automaticamente"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Se não preenchida, uma senha será gerada automaticamente.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
             <div className="flex items-center gap-2">
               <Switch checked={editing.ativo ?? true} onCheckedChange={(v) => setEditing({ ...editing, ativo: v })} />
               <Label>Ativo</Label>
