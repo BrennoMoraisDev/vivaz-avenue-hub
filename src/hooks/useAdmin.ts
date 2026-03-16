@@ -383,7 +383,7 @@ export function useAdminClientes() {
         return {
           ...c,
           totalAgendamentos: count || 0,
-          ultimoAgendamento: ultimo?.[0]?.data || null,
+          ultimoAgendamento: (ultimo as any)?.[0]?.data || null,
         };
       })
     );

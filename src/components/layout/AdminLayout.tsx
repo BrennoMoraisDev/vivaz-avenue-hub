@@ -1,16 +1,18 @@
 import { Outlet } from 'react-router-dom';
 import DesktopSidebar from './DesktopSidebar';
 import MobileNav from './MobileNav';
-import { CalendarDays, Users, Scissors, Tag, Settings, LayoutDashboard } from 'lucide-react';
+import { CalendarDays, Users, Scissors, Tag, Settings, LayoutDashboard, CalendarOff, UserCircle } from 'lucide-react';
 
 const adminNav = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/agenda' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
   { icon: CalendarDays, label: 'Agenda', path: '/admin/agenda' },
   { icon: Users, label: 'Barbeiros', path: '/admin/barbeiros' },
   { icon: Scissors, label: 'Serviços', path: '/admin/servicos' },
   { icon: Tag, label: 'Categorias', path: '/admin/categorias' },
   { icon: Users, label: 'Clientes', path: '/admin/clientes' },
+  { icon: CalendarOff, label: 'Bloqueios', path: '/admin/bloqueios' },
   { icon: Settings, label: 'Configurações', path: '/admin/configuracoes' },
+  { icon: UserCircle, label: 'Perfil', path: '/admin/perfil' },
 ];
 
 const AdminLayout = () => {
