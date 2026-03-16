@@ -37,12 +37,15 @@ import BarbeiroGanhos from "./pages/barbeiro/BarbeiroGanhos";
 import BarbeiroPerfil from "./pages/barbeiro/BarbeiroPerfil";
 
 // Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAgenda from "./pages/admin/AdminAgenda";
 import AdminBarbeiros from "./pages/admin/AdminBarbeiros";
 import AdminServicos from "./pages/admin/AdminServicos";
 import AdminCategorias from "./pages/admin/AdminCategorias";
 import AdminClientes from "./pages/admin/AdminClientes";
+import AdminBloqueios from "./pages/admin/AdminBloqueios";
 import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
+import AdminPerfil from "./pages/admin/AdminPerfil";
 
 const queryClient = new QueryClient();
 
@@ -102,12 +105,15 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/agenda" element={<AdminAgenda />} />
               <Route path="/admin/barbeiros" element={<AdminBarbeiros />} />
               <Route path="/admin/servicos" element={<AdminServicos />} />
               <Route path="/admin/categorias" element={<AdminCategorias />} />
               <Route path="/admin/clientes" element={<AdminClientes />} />
+              <Route path="/admin/bloqueios" element={<AdminBloqueios />} />
               <Route path="/admin/configuracoes" element={<AdminConfiguracoes />} />
+              <Route path="/admin/perfil" element={<AdminPerfil />} />
             </Route>
 
             {/* Legacy redirects */}

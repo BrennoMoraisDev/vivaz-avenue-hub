@@ -1,61 +1,137 @@
+import { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import { CalendarDays, Users, Scissors, Tag, Settings, TrendingUp } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useAdminAgenda, useBarbeiros, type AgendamentoAdmin } from '@/hooks/useAdmin';
+import StatusBadge from '@/components/barbeiro/StatusBadge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, CalendarDays, Eye } from 'lucide-react';
+import type { AgendamentoStatus } from '@/types/database.types';
+import { motion } from 'framer-motion';
 
-const sections = [
-  { icon: CalendarDays, label: 'Agenda', desc: 'Visão geral dos agendamentos', path: '/admin/agenda' },
-  { icon: Users, label: 'Barbeiros', desc: 'Gerenciar equipe', path: '/admin/barbeiros' },
-  { icon: Scissors, label: 'Serviços', desc: 'Gerenciar serviços e preços', path: '/admin/servicos' },
-  { icon: Tag, label: 'Categorias', desc: 'Organizar categorias', path: '/admin/categorias' },
-  { icon: Users, label: 'Clientes', desc: 'Base de clientes', path: '/admin/clientes' },
-  { icon: Settings, label: 'Configurações', desc: 'Ajustes do sistema', path: '/admin/configuracoes' },
-];
+const STATUS_OPTIONS: AgendamentoStatus[] = ['agendado', 'confirmado', 'em atendimento', 'finalizado', 'cancelado', 'faltou'];
 
 const AdminAgenda = () => {
-  const navigate = useNavigate();
+  const hoje = new Date().toISOString().split('T')[0];
+  const [barbeiroId, setBarbeiroId] = useState('');
+  const [dataInicio, setDataInicio] = useState(hoje);
+  const [dataFim, setDataFim] = useState(hoje);
+  const [statusFilter, setStatusFilter] = useState('todos');
+
+  const { agendamentos, loading, atualizarStatus } = useAdminAgenda({
+    barbeiroId: barbeiroId || undefined,
+    dataInicio,
+    dataFim,
+    status: statusFilter,
+  });
+  const { barbeiros } = useBarbeiros();
+  const { toast } = useToast();
+  const [detalhes, setDetalhes] = useState<AgendamentoAdmin | null>(null);
+
+  const handleStatusChange = async (id: string, status: AgendamentoStatus) => {
+    const { error } = await atualizarStatus(id, status);
+    if (error) toast({ title: 'Erro', variant: 'destructive' });
+    else toast({ title: `Status alterado para ${status}` });
+  };
 
   return (
-    <PageContainer title="Painel Administrativo" subtitle="Gerencie a Vivaz Barbearia Avenue">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-        {[
-          { icon: CalendarDays, label: 'Agendamentos hoje', value: '0' },
-          { icon: TrendingUp, label: 'Faturamento do mês', value: 'R$ 0' },
-          { icon: Users, label: 'Clientes cadastrados', value: '0' },
-        ].map((stat) => (
-          <div key={stat.label} className="glass rounded-2xl p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <stat.icon size={20} className="text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="font-heading text-xl font-bold text-foreground">{stat.value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+    <PageContainer title="Agenda Geral" subtitle="Todos os agendamentos da barbearia">
+      {/* Filters */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:flex-wrap mb-6">
+        <div>
+          <label className="text-xs text-muted-foreground">Barbeiro</label>
+          <select value={barbeiroId} onChange={(e) => setBarbeiroId(e.target.value)} className="block w-full rounded-lg border border-input bg-background px-3 py-2 text-sm mt-1">
+            <option value="">Todos</option>
+            {barbeiros.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">De</label>
+          <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="mt-1" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Até</label>
+          <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="mt-1" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground">Status</label>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="block w-full rounded-lg border border-input bg-background px-3 py-2 text-sm mt-1">
+            <option value="todos">Todos</option>
+            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
       </div>
 
-      <h2 className="font-heading text-lg font-semibold text-foreground mb-4">Gerenciamento</h2>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {sections.map((item) => (
-          <button
-            key={item.path + item.label}
-            onClick={() => navigate(item.path)}
-            className="glass rounded-2xl p-6 text-left transition-all duration-300 hover:border-primary/30 hover:shadow-gold group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/20">
-                <item.icon size={20} className="text-primary" />
+      {loading ? (
+        <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+      ) : agendamentos.length === 0 ? (
+        <div className="glass rounded-2xl p-8 text-center">
+          <CalendarDays size={48} className="mx-auto mb-4 text-primary/40" />
+          <h3 className="font-heading text-lg font-semibold text-foreground">Nenhum agendamento encontrado</h3>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {agendamentos.map((ag, i) => (
+            <motion.div
+              key={ag.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.02 }}
+              className="glass rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            >
+              <div className="flex items-center gap-4 flex-1">
+                <div className="text-center min-w-[60px]">
+                  <p className="text-[11px] text-muted-foreground">{ag.data}</p>
+                  <p className="font-heading text-lg font-bold text-primary">{ag.hora?.slice(0, 5)}</p>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{ag.clientes?.nome || 'Cliente'}</p>
+                  <p className="text-xs text-muted-foreground">{ag.servicos?.nome} • {ag.barbeiros?.nome || 'Barbeiro'}</p>
+                  {ag.servicos?.preco && (
+                    <p className="text-xs text-primary font-semibold">R$ {ag.servicos.preco.toFixed(2)}</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <h3 className="font-heading text-sm font-semibold text-foreground">{item.label}</h3>
-                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <StatusBadge status={ag.status} />
+                <select
+                  value={ag.status}
+                  onChange={(e) => handleStatusChange(ag.id, e.target.value as AgendamentoStatus)}
+                  className="rounded-lg border border-input bg-background px-2 py-1 text-xs"
+                >
+                  {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <Button size="sm" variant="ghost" onClick={() => setDetalhes(ag)}><Eye size={14} /></Button>
               </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Detalhes Modal */}
+      <Dialog open={!!detalhes} onOpenChange={() => setDetalhes(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Detalhes do Agendamento</DialogTitle></DialogHeader>
+          {detalhes && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div><span className="text-muted-foreground">Data:</span> {detalhes.data}</div>
+                <div><span className="text-muted-foreground">Hora:</span> {detalhes.hora?.slice(0, 5)}</div>
+                <div><span className="text-muted-foreground">Cliente:</span> {detalhes.clientes?.nome || '—'}</div>
+                <div><span className="text-muted-foreground">Telefone:</span> {detalhes.clientes?.telefone || '—'}</div>
+                <div><span className="text-muted-foreground">Serviço:</span> {detalhes.servicos?.nome || '—'}</div>
+                <div><span className="text-muted-foreground">Valor:</span> R$ {(detalhes.servicos?.preco ?? 0).toFixed(2)}</div>
+                <div><span className="text-muted-foreground">Barbeiro:</span> {detalhes.barbeiros?.nome || '—'}</div>
+                <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={detalhes.status} /></div>
+              </div>
+              {detalhes.observacao && (
+                <div><span className="text-muted-foreground">Observação:</span> {detalhes.observacao}</div>
+              )}
             </div>
-          </button>
-        ))}
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 };
