@@ -41,6 +41,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(data as UserProfile | null);
   };
 
+  const createProfileIfNotExists = async (userId: string, user: User) => {
+    try {
+      // Check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('perfis')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (existingProfile) {
+        await fetchProfile(userId);
+        return;
+      }
+
+      // Extract name from Google metadata or email
+      let nome = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário';
+
+      // Create new profile
+      const { data, error } = await supabase
+        .from('perfis')
+        .insert({
+          id: userId,
+          nome,
+          telefone: null,
+          role: 'cliente',
+          avatar_url: user.user_metadata?.avatar_url || null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao criar perfil:', error);
+        // If profile creation fails, try to fetch it anyway
+        await fetchProfile(userId);
+      } else {
+        setProfile(data as UserProfile);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar/criar perfil:', error);
+      // Fallback: try to fetch existing profile
+      await fetchProfile(userId);
+    }
+  };
+
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
   };
@@ -51,8 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Defer profile fetch to avoid Supabase deadlocks
-          setTimeout(() => fetchProfile(session.user.id), 0);
+          // Create profile if it doesn't exist, then fetch it
+          await createProfileIfNotExists(session.user.id, session.user);
         } else {
           setProfile(null);
         }
@@ -60,11 +104,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await createProfileIfNotExists(session.user.id, session.user);
       }
       setLoading(false);
     });

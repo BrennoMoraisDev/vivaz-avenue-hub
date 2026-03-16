@@ -14,7 +14,7 @@ import { useBarbeiros } from '@/hooks/useBarbeiros';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPreco, formatDuracao } from '@/lib/format';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Check, CalendarDays, User, Scissors, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, CalendarDays, User, Scissors, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -137,16 +137,27 @@ const ClienteAgendar = () => {
       {step === 0 && (
         <div>
           <h2 className="font-heading text-lg font-semibold text-foreground mb-4">Escolha o serviço</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {servicos.map(s => (
-              <ServiceCard
-                key={s.id}
-                servico={s}
-                selected={servicoId === s.id}
-                onSelect={(id) => { setServicoId(id); setStep(1); }}
-              />
-            ))}
-          </div>
+          {servicos.length === 0 ? (
+            <div className="glass rounded-2xl p-8 text-center">
+              <AlertCircle size={36} className="mx-auto mb-3 text-amber-500/50" />
+              <p className="text-sm text-muted-foreground mb-2">Nenhum serviço disponível</p>
+              <p className="text-xs text-muted-foreground">O administrador ainda não cadastrou serviços. Tente novamente mais tarde.</p>
+              <Button variant="ghost" size="sm" className="mt-4" onClick={() => navigate('/cliente')}>
+                Voltar ao início
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {servicos.map(s => (
+                <ServiceCard
+                  key={s.id}
+                  servico={s}
+                  selected={servicoId === s.id}
+                  onSelect={(id) => { setServicoId(id); setStep(1); }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -154,16 +165,27 @@ const ClienteAgendar = () => {
       {step === 1 && (
         <div>
           <h2 className="font-heading text-lg font-semibold text-foreground mb-4">Escolha o barbeiro</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {barbeiros.map(b => (
-              <BarberCard
-                key={b.id}
-                barbeiro={b}
-                selected={barbeiroId === b.id}
-                onSelect={(id) => { setBarbeiroId(id); setStep(2); }}
-              />
-            ))}
-          </div>
+          {barbeiros.length === 0 ? (
+            <div className="glass rounded-2xl p-8 text-center">
+              <AlertCircle size={36} className="mx-auto mb-3 text-amber-500/50" />
+              <p className="text-sm text-muted-foreground mb-2">Nenhum barbeiro disponível</p>
+              <p className="text-xs text-muted-foreground">O administrador ainda não cadastrou barbeiros. Tente novamente mais tarde.</p>
+              <Button variant="ghost" size="sm" className="mt-4" onClick={() => setStep(0)}>
+                Voltar
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {barbeiros.map(b => (
+                <BarberCard
+                  key={b.id}
+                  barbeiro={b}
+                  selected={barbeiroId === b.id}
+                  onSelect={(id) => { setBarbeiroId(id); setStep(2); }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -195,11 +217,22 @@ const ClienteAgendar = () => {
               {format(data, "EEEE, dd 'de' MMMM", { locale: ptBR })} • {barbeiro?.nome}
             </p>
           )}
-          <TimeSlotPicker
-            slots={slots}
-            selected={hora}
-            onSelect={(h) => { setHora(h); setStep(4); }}
-          />
+          {slots.length === 0 ? (
+            <div className="glass rounded-2xl p-8 text-center">
+              <AlertCircle size={36} className="mx-auto mb-3 text-amber-500/50" />
+              <p className="text-sm text-muted-foreground mb-2">Nenhum horário disponível</p>
+              <p className="text-xs text-muted-foreground">Todos os horários estão ocupados nesta data. Escolha outra data.</p>
+              <Button variant="ghost" size="sm" className="mt-4" onClick={() => setStep(2)}>
+                Voltar
+              </Button>
+            </div>
+          ) : (
+            <TimeSlotPicker
+              slots={slots}
+              selected={hora}
+              onSelect={(h) => { setHora(h); setStep(4); }}
+            />
+          )}
         </div>
       )}
 
