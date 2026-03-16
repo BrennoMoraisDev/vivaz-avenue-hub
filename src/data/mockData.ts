@@ -1,4 +1,7 @@
-// Mock data for development - will be replaced by Supabase queries
+// DEPRECATED: Mock data for development - MIGRATED TO SUPABASE
+// This file is maintained for backward compatibility only.
+// All data should now be fetched from Supabase database.
+// See: https://github.com/vivaz-barbearia/vivaz-avenue-hub/issues/XXX
 
 export const mockCategorias = [
   { id: 'cat-1', nome: 'Cortes', ordem: 1 },
