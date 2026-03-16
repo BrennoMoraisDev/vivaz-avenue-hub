@@ -9,15 +9,21 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useDisponibilidade, useDiasTrabalho } from '@/hooks/useDisponibilidade';
-import { mockServicos, mockBarbeiros, getServicoById, getBarbeiroById, formatPreco, formatDuracao } from '@/data/mockData';
-import { ArrowLeft, Check, CalendarDays, Clock, Scissors, User } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { useServicos } from '@/hooks/useServicos';
+import { useBarbeiros } from '@/hooks/useBarbeiros';
+import { useAuth } from '@/hooks/useAuth';
+import { formatPreco, formatDuracao } from '@/lib/format';
+import { supabase } from '@/lib/supabase';
+import { ArrowLeft, Check, CalendarDays, User, Scissors, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 const ClienteAgendar = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { profile } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [step, setStep] = useState(0);
@@ -26,28 +32,35 @@ const ClienteAgendar = () => {
   const [data, setData] = useState<Date | undefined>(undefined);
   const [hora, setHora] = useState<string | null>(null);
   const [observacao, setObservacao] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const { servicos, loading: loadingServicos } = useServicos();
+  const { barbeiros, loading: loadingBarbeiros } = useBarbeiros();
 
   // Pre-select from URL params
   useEffect(() => {
+    if (loadingServicos || loadingBarbeiros) return;
+    
     const srvParam = searchParams.get('servico');
     const barParam = searchParams.get('barbeiro');
-    if (srvParam && mockServicos.find(s => s.id === srvParam)) {
+    
+    if (srvParam && servicos.find(s => s.id === srvParam)) {
       setServicoId(srvParam);
       setStep(1);
     }
-    if (barParam && mockBarbeiros.find(b => b.id === barParam)) {
+    if (barParam && barbeiros.find(b => b.id === barParam)) {
       setBarbeiroId(barParam);
-      if (!srvParam) setStep(0); // still need service
+      if (!srvParam) setStep(0);
       else setStep(2);
     }
-  }, [searchParams]);
+  }, [searchParams, servicos, barbeiros, loadingServicos, loadingBarbeiros]);
 
   const dataStr = data ? format(data, 'yyyy-MM-dd') : null;
   const slots = useDisponibilidade(barbeiroId, dataStr, servicoId);
   const diasTrabalho = useDiasTrabalho(barbeiroId);
 
-  const servico = servicoId ? getServicoById(servicoId) : null;
-  const barbeiro = barbeiroId ? getBarbeiroById(barbeiroId) : null;
+  const servico = servicos.find(s => s.id === servicoId);
+  const barbeiro = barbeiros.find(b => b.id === barbeiroId);
 
   const handleBack = () => {
     if (step === 0) navigate(-1);
@@ -58,19 +71,54 @@ const ClienteAgendar = () => {
     }
   };
 
-  const handleConfirm = () => {
-    // TODO: Insert into Supabase
-    toast({
-      title: '✅ Agendamento confirmado!',
-      description: `${servico?.nome} com ${barbeiro?.nome} em ${data ? format(data, "dd/MM/yyyy") : ''} às ${hora}`,
-    });
-    navigate('/cliente/historico');
+  const handleConfirm = async () => {
+    if (!profile?.id || !barbeiroId || !servicoId || !dataStr || !hora) {
+      toast({ title: 'Erro no agendamento', description: 'Dados incompletos.', variant: 'destructive' });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .insert({
+          cliente_id: profile.id,
+          barbeiro_id: barbeiroId,
+          servico_id: servicoId,
+          data: dataStr,
+          hora: hora,
+          status: 'agendado',
+          observacao: observacao || null
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Agendamento confirmado!',
+        description: `${servico?.nome} com ${barbeiro?.nome} em ${format(data!, "dd/MM/yyyy")} às ${hora}`,
+      });
+      navigate('/cliente/historico');
+    } catch (error: any) {
+      toast({ title: 'Erro ao agendar', description: error.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const disabledDays = (date: Date) => {
     if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
     return !diasTrabalho.has(date.getDay());
   };
+
+  if (loadingServicos || loadingBarbeiros) {
+    return (
+      <PageContainer>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -90,7 +138,7 @@ const ClienteAgendar = () => {
         <div>
           <h2 className="font-heading text-lg font-semibold text-foreground mb-4">Escolha o serviço</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {mockServicos.filter(s => s.ativo).map(s => (
+            {servicos.map(s => (
               <ServiceCard
                 key={s.id}
                 servico={s}
@@ -107,7 +155,7 @@ const ClienteAgendar = () => {
         <div>
           <h2 className="font-heading text-lg font-semibold text-foreground mb-4">Escolha o barbeiro</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {mockBarbeiros.filter(b => b.ativo).map(b => (
+            {barbeiros.map(b => (
               <BarberCard
                 key={b.id}
                 barbeiro={b}
@@ -169,7 +217,7 @@ const ClienteAgendar = () => {
                 <p className="text-xs text-muted-foreground">Serviço</p>
                 <p className="text-sm font-medium text-foreground">{servico?.nome}</p>
                 <p className="text-xs text-primary font-semibold">
-                  {servico?.preco != null && formatPreco(servico.preco)} • {servico?.duracao_minutos && formatDuracao(servico.duracao_minutos)}
+                  {formatPreco(servico?.preco)} • {formatDuracao(servico?.duracao_minutos)}
                 </p>
               </div>
             </div>
@@ -212,8 +260,8 @@ const ClienteAgendar = () => {
             />
           </div>
 
-          <Button variant="gold" size="lg" className="w-full" onClick={handleConfirm}>
-            <Check size={18} />
+          <Button variant="gold" size="lg" className="w-full" onClick={handleConfirm} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check size={18} />}
             Confirmar Agendamento
           </Button>
         </div>

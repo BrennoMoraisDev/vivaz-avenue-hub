@@ -3,8 +3,8 @@ import { useAuth } from '@/hooks/useAuth';
 import PageContainer from '@/components/layout/PageContainer';
 import AppointmentCard from '@/components/cliente/AppointmentCard';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Clock, Scissors, ArrowRight } from 'lucide-react';
-import { mockAgendamentos } from '@/data/mockData';
+import { CalendarDays, Clock, Scissors, ArrowRight, Loader2 } from 'lucide-react';
+import { useAgendamentos } from '@/hooks/useAgendamentos';
 
 const shortcuts = [
   { icon: CalendarDays, label: 'Agendar horário', path: '/cliente/agendar', color: 'text-primary' },
@@ -15,10 +15,12 @@ const shortcuts = [
 const ClienteDashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { agendamentos, loading } = useAgendamentos();
+  
   const firstName = profile?.nome?.split(' ')[0] || 'Cliente';
 
   // Próximos agendamentos (agendado ou confirmado)
-  const proximos = mockAgendamentos
+  const proximos = agendamentos
     .filter(a => ['agendado', 'confirmado'].includes(a.status))
     .sort((a, b) => `${a.data}${a.hora}`.localeCompare(`${b.data}${b.hora}`))
     .slice(0, 3);
@@ -57,13 +59,17 @@ const ClienteDashboard = () => {
         </Button>
       </div>
 
-      {proximos.length > 0 ? (
+      {loading ? (
+        <div className="flex h-32 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : proximos.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {proximos.map(a => (
             <AppointmentCard
               key={a.id}
               agendamento={a}
-              onCancelar={(id) => console.log('Cancelar:', id)}
+              onCancelar={(id) => navigate('/cliente/historico')}
             />
           ))}
         </div>

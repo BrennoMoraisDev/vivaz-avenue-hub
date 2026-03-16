@@ -1,23 +1,100 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import RatingStars from '@/components/cliente/RatingStars';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Send, User, Scissors } from 'lucide-react';
-import { mockAgendamentos, mockAvaliacoes, getServicoById, getBarbeiroById } from '@/data/mockData';
-import { toast } from '@/hooks/use-toast';
+import { ArrowLeft, Send, User, Scissors, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 const ClienteAvaliar = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { profile } = useAuth();
   const { id } = useParams<{ id: string }>();
 
-  const agendamento = mockAgendamentos.find(a => a.id === id);
-  const jaAvaliado = mockAvaliacoes.some(av => av.agendamento_id === id);
-
+  const [agendamento, setAgendamento] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [nota, setNota] = useState(0);
   const [comentario, setComentario] = useState('');
   const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    const fetchAgendamento = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('agendamentos')
+          .select('*, barbeiros(nome), servicos(nome)')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+        setAgendamento(data);
+        
+        // Check if already rated
+        const { data: avaliacao } = await supabase
+          .from('avaliacoes')
+          .select('id')
+          .eq('agendamento_id', id)
+          .maybeSingle();
+        
+        if (avaliacao) {
+          setAgendamento((prev: any) => ({ ...prev, jaAvaliado: true }));
+        }
+      } catch (error) {
+        console.error('Erro ao buscar agendamento:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAgendamento();
+  }, [id]);
+
+  const handleEnviar = async () => {
+    if (nota === 0) {
+      toast({ title: 'Selecione uma nota', description: 'Toque nas estrelas para avaliar.', variant: 'destructive' });
+      return;
+    }
+    
+    if (!profile?.id || !agendamento) return;
+
+    setEnviando(true);
+    try {
+      const { error } = await supabase
+        .from('avaliacoes')
+        .insert({
+          agendamento_id: agendamento.id,
+          cliente_id: profile.id,
+          barbeiro_id: agendamento.barbeiro_id,
+          nota,
+          comentario: comentario || null
+        });
+
+      if (error) throw error;
+
+      toast({ title: '⭐ Avaliação enviada!', description: 'Obrigado pelo seu feedback.' });
+      navigate('/cliente/historico');
+    } catch (error: any) {
+      toast({ title: 'Erro ao avaliar', description: error.message, variant: 'destructive' });
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   if (!agendamento || agendamento.status !== 'finalizado') {
     return (
@@ -32,7 +109,7 @@ const ClienteAvaliar = () => {
     );
   }
 
-  if (jaAvaliado) {
+  if (agendamento.jaAvaliado) {
     return (
       <PageContainer>
         <div className="glass rounded-2xl p-8 text-center">
@@ -44,21 +121,6 @@ const ClienteAvaliar = () => {
       </PageContainer>
     );
   }
-
-  const servico = getServicoById(agendamento.servico_id);
-  const barbeiro = getBarbeiroById(agendamento.barbeiro_id);
-
-  const handleEnviar = async () => {
-    if (nota === 0) {
-      toast({ title: 'Selecione uma nota', description: 'Toque nas estrelas para avaliar.', variant: 'destructive' });
-      return;
-    }
-    setEnviando(true);
-    // TODO: Insert into Supabase avaliacoes table
-    await new Promise(r => setTimeout(r, 800));
-    toast({ title: '⭐ Avaliação enviada!', description: 'Obrigado pelo seu feedback.' });
-    navigate('/cliente/historico');
-  };
 
   return (
     <PageContainer>
@@ -78,7 +140,7 @@ const ClienteAvaliar = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Barbeiro</p>
-              <p className="text-sm font-medium text-foreground">{barbeiro?.nome}</p>
+              <p className="text-sm font-medium text-foreground">{agendamento.barbeiros?.nome}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -87,7 +149,7 @@ const ClienteAvaliar = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Serviço</p>
-              <p className="text-sm font-medium text-foreground">{servico?.nome}</p>
+              <p className="text-sm font-medium text-foreground">{agendamento.servicos?.nome}</p>
             </div>
           </div>
         </div>
@@ -118,7 +180,7 @@ const ClienteAvaliar = () => {
         </div>
 
         <Button variant="gold" size="lg" className="w-full" onClick={handleEnviar} disabled={enviando}>
-          <Send size={16} />
+          {enviando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send size={16} />}
           {enviando ? 'Enviando...' : 'Enviar Avaliação'}
         </Button>
       </div>

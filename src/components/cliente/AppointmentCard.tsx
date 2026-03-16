@@ -1,18 +1,18 @@
-import { Calendar, Clock, User, Scissors, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, User, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { getServicoById, getBarbeiroById, formatPreco } from '@/data/mockData';
+import { formatPreco } from '@/lib/format';
 import type { AgendamentoStatus } from '@/types/database.types';
 
 interface AppointmentCardProps {
   agendamento: {
     id: string;
-    barbeiro_id: string;
-    servico_id: string;
     data: string;
     hora: string;
     status: AgendamentoStatus;
     observacao: string | null;
+    barbeiros?: { nome: string | null } | null;
+    servicos?: { nome: string | null; preco: number | null; duracao_minutos: number | null } | null;
   };
   hasAvaliacao?: boolean;
   onCancelar?: (id: string) => void;
@@ -29,9 +29,7 @@ const statusConfig: Record<AgendamentoStatus, { label: string; className: string
 };
 
 const AppointmentCard = ({ agendamento, hasAvaliacao, onCancelar, onAvaliar }: AppointmentCardProps) => {
-  const servico = getServicoById(agendamento.servico_id);
-  const barbeiro = getBarbeiroById(agendamento.barbeiro_id);
-  const status = statusConfig[agendamento.status];
+  const status = statusConfig[agendamento.status] || statusConfig['agendado'];
 
   const dataFormatada = new Date(agendamento.data + 'T00:00:00').toLocaleDateString('pt-BR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
@@ -42,10 +40,10 @@ const AppointmentCard = ({ agendamento, hasAvaliacao, onCancelar, onAvaliar }: A
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
           <h3 className="font-heading text-sm font-semibold text-foreground truncate">
-            {servico?.nome || 'Serviço'}
+            {agendamento.servicos?.nome || 'Serviço'}
           </h3>
-          {servico?.preco != null && (
-            <span className="text-xs font-semibold text-primary">{formatPreco(servico.preco)}</span>
+          {agendamento.servicos?.preco != null && (
+            <span className="text-xs font-semibold text-primary">{formatPreco(agendamento.servicos.preco)}</span>
           )}
         </div>
         <Badge variant="outline" className={`shrink-0 text-[10px] ${status.className}`}>
@@ -56,7 +54,7 @@ const AppointmentCard = ({ agendamento, hasAvaliacao, onCancelar, onAvaliar }: A
       <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <User size={12} className="text-primary/60" />
-          <span className="truncate">{barbeiro?.nome || 'Barbeiro'}</span>
+          <span className="truncate">{agendamento.barbeiros?.nome || 'Barbeiro'}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Calendar size={12} className="text-primary/60" />
@@ -76,7 +74,7 @@ const AppointmentCard = ({ agendamento, hasAvaliacao, onCancelar, onAvaliar }: A
 
       {/* Actions */}
       <div className="mt-4 flex gap-2">
-        {agendamento.status === 'agendado' && onCancelar && (
+        {(agendamento.status === 'agendado' || agendamento.status === 'confirmado') && onCancelar && (
           <Button variant="destructive" size="sm" className="flex-1 text-xs" onClick={() => onCancelar(agendamento.id)}>
             Cancelar
           </Button>

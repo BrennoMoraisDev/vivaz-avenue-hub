@@ -1,6 +1,6 @@
 import { Scissors, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatPreco, formatDuracao, getCategoriaById } from '@/data/mockData';
+import { formatPreco, formatDuracao } from '@/lib/format';
 
 interface ServiceCardProps {
   servico: {
@@ -11,6 +11,7 @@ interface ServiceCardProps {
     duracao_minutos: number | null;
     categoria_id: string | null;
     foto: string | null;
+    categorias_servico?: { nome: string | null } | null;
   };
   onAgendar?: (id: string) => void;
   selected?: boolean;
@@ -18,7 +19,7 @@ interface ServiceCardProps {
 }
 
 const ServiceCard = ({ servico, onAgendar, selected, onSelect }: ServiceCardProps) => {
-  const categoria = servico.categoria_id ? getCategoriaById(servico.categoria_id) : null;
+  const categoriaNome = servico.categorias_servico?.nome;
 
   return (
     <div
@@ -37,9 +38,9 @@ const ServiceCard = ({ servico, onAgendar, selected, onSelect }: ServiceCardProp
       </div>
 
       {/* Category badge */}
-      {categoria && (
+      {categoriaNome && (
         <span className="inline-block mb-2 rounded-full bg-primary/10 px-3 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
-          {categoria.nome}
+          {categoriaNome}
         </span>
       )}
 
@@ -50,11 +51,11 @@ const ServiceCard = ({ servico, onAgendar, selected, onSelect }: ServiceCardProp
       {/* Price & Duration */}
       <div className="mt-4 flex items-center justify-between">
         <span className="font-heading text-lg font-bold text-primary">
-          {servico.preco != null ? formatPreco(servico.preco) : '—'}
+          {formatPreco(servico.preco)}
         </span>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock size={12} />
-          <span>{servico.duracao_minutos ? formatDuracao(servico.duracao_minutos) : '—'}</span>
+          <span>{formatDuracao(servico.duracao_minutos)}</span>
         </div>
       </div>
 

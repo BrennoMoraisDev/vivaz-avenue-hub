@@ -1,45 +1,56 @@
-import { useMemo } from 'react';
-import { mockHorarios, mockAgendamentos, getServicoById } from '@/data/mockData';
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
 
-/**
- * Calcula os slots de horário disponíveis para um barbeiro em uma data,
- * considerando seus horários de trabalho, agendamentos existentes e duração do serviço.
- */
 export function useDisponibilidade(
   barbeiroId: string | null,
   data: string | null, // YYYY-MM-DD
   servicoId: string | null
 ) {
-  const slots = useMemo(() => {
-    if (!barbeiroId || !data || !servicoId) return [];
+  const [horariosTrabalho, setHorariosTrabalho] = useState<any[]>([]);
+  const [agendamentosOcupados, setAgendamentosOcupados] = useState<any[]>([]);
+  const [servico, setServico] = useState<any>(null);
 
-    const servico = getServicoById(servicoId);
-    if (!servico) return [];
+  useEffect(() => {
+    if (!barbeiroId || !data || !servicoId) return;
+
+    const fetchData = async () => {
+      // 1. Buscar serviço
+      const { data: srv } = await supabase
+        .from('servicos')
+        .select('*')
+        .eq('id', servicoId)
+        .single();
+      setServico(srv);
+
+      // 2. Buscar horários de trabalho
+      const dateObj = new Date(data + 'T12:00:00');
+      const diaSemana = dateObj.getDay();
+      const { data: hrs } = await supabase
+        .from('horarios_trabalho')
+        .select('*')
+        .eq('barbeiro_id', barbeiroId)
+        .eq('dia_semana', diaSemana);
+      setHorariosTrabalho(hrs || []);
+
+      // 3. Buscar agendamentos ocupados
+      const { data: ags } = await supabase
+        .from('agendamentos')
+        .select('hora, servicos(duracao_minutos)')
+        .eq('barbeiro_id', barbeiroId)
+        .eq('data', data)
+        .not('status', 'in', '("cancelado", "faltou")');
+      setAgendamentosOcupados(ags || []);
+    };
+
+    fetchData();
+  }, [barbeiroId, data, servicoId]);
+
+  const slots = useMemo(() => {
+    if (!servico || horariosTrabalho.length === 0) return [];
 
     const duracao = servico.duracao_minutos || 30;
-
-    // Dia da semana (0=Dom, 1=Seg, ..., 6=Sab)
-    const dateObj = new Date(data + 'T12:00:00');
-    const diaSemana = dateObj.getDay();
-
-    // Horários de trabalho do barbeiro neste dia
-    const horariosDia = mockHorarios.filter(
-      h => h.barbeiro_id === barbeiroId && h.dia_semana === diaSemana
-    );
-
-    if (horariosDia.length === 0) return [];
-
-    // Agendamentos existentes neste dia (exceto cancelados/faltou)
-    const agendamentosDia = mockAgendamentos.filter(
-      a =>
-        a.barbeiro_id === barbeiroId &&
-        a.data === data &&
-        !['cancelado', 'faltou'].includes(a.status)
-    );
-
-    const ocupados = agendamentosDia.map(a => {
-      const srv = getServicoById(a.servico_id);
-      const dur = srv?.duracao_minutos || 30;
+    const ocupados = agendamentosOcupados.map(a => {
+      const dur = a.servicos?.duracao_minutos || 30;
       const [h, m] = a.hora.split(':').map(Number);
       const inicio = h * 60 + m;
       return { inicio, fim: inicio + dur };
@@ -47,20 +58,15 @@ export function useDisponibilidade(
 
     const available: string[] = [];
 
-    for (const horario of horariosDia) {
+    for (const horario of horariosTrabalho) {
       const [hi, mi] = horario.inicio.split(':').map(Number);
       const [hf, mf] = horario.fim.split(':').map(Number);
       const inicioMin = hi * 60 + mi;
       const fimMin = hf * 60 + mf;
 
-      // Generate slots every 30 minutes
       for (let t = inicioMin; t + duracao <= fimMin; t += 30) {
         const slotFim = t + duracao;
-
-        // Check conflicts
-        const conflito = ocupados.some(
-          o => t < o.fim && slotFim > o.inicio
-        );
+        const conflito = ocupados.some(o => t < o.fim && slotFim > o.inicio);
 
         if (!conflito) {
           const hh = String(Math.floor(t / 60)).padStart(2, '0');
@@ -71,20 +77,28 @@ export function useDisponibilidade(
     }
 
     return available;
-  }, [barbeiroId, data, servicoId]);
+  }, [servico, horariosTrabalho, agendamentosOcupados]);
 
   return slots;
 }
 
-/**
- * Returns which days of the week a barber works (for calendar highlighting).
- */
 export function useDiasTrabalho(barbeiroId: string | null) {
-  return useMemo(() => {
-    if (!barbeiroId) return new Set<number>();
-    const dias = mockHorarios
-      .filter(h => h.barbeiro_id === barbeiroId)
-      .map(h => h.dia_semana);
-    return new Set(dias);
+  const [dias, setDias] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!barbeiroId) return;
+    const fetch = async () => {
+      const { data } = await supabase
+        .from('horarios_trabalho')
+        .select('dia_semana')
+        .eq('barbeiro_id', barbeiroId);
+      
+      if (data) {
+        setDias(new Set(data.map(d => d.dia_semana)));
+      }
+    };
+    fetch();
   }, [barbeiroId]);
+
+  return dias;
 }
