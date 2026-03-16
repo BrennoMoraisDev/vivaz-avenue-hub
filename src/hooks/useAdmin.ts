@@ -365,7 +365,7 @@ export function useAdminClientes() {
 
   const fetch = useCallback(async () => {
     setLoading(true);
-    const { data: clientesData } = await supabase.from('clientes').select('*').order('nome');
+    const { data: clientesData } = await supabase.from('perfis').select('*').eq('role', 'cliente').order('nome');
     
     // Get agendamentos counts
     const enriched = await Promise.all(
@@ -395,7 +395,7 @@ export function useAdminClientes() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const atualizar = async (id: string, c: Partial<Cliente>) => {
-    const { error } = await (supabase.from('clientes') as any).update(c).eq('id', id);
+    const { error } = await (supabase.from('perfis') as any).update(c).eq('id', id);
     if (!error) await fetch();
     return { error };
   };
