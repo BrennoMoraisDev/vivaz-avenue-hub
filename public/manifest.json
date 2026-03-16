@@ -1,21 +1,67 @@
 {
   "name": "Vivaz Barbearia Avenue",
   "short_name": "Vivaz",
-  "description": "Tradição • Estilo • Cuidado",
+  "description": "Agendamento premium para barbearia de luxo. Agende seu horário com os melhores barbeiros.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0A0A0A",
-  "theme_color": "#000000",
+  "theme_color": "#D4AF37",
+  "categories": ["business", "lifestyle"],
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-192x192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Agendar Horário",
+      "short_name": "Agendar",
+      "description": "Agende um horário na barbearia",
+      "url": "/cliente/agendar",
+      "icons": [
+        {
+          "src": "/icons/agendar-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Meu Histórico",
+      "short_name": "Histórico",
+      "description": "Veja seu histórico de agendamentos",
+      "url": "/cliente/historico",
+      "icons": [
+        {
+          "src": "/icons/historico-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
 }
