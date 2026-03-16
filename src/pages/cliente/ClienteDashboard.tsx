@@ -4,7 +4,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import AppointmentCard from '@/components/cliente/AppointmentCard';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, Clock, Scissors, ArrowRight, Loader2 } from 'lucide-react';
-import { useAgendamentos } from '@/hooks/useAgendamentos';
+import { useAgendamentosCliente } from '@/hooks/useAgendamentos';
 
 const shortcuts = [
   { icon: CalendarDays, label: 'Agendar horário', path: '/cliente/agendar', color: 'text-primary' },
@@ -15,7 +15,7 @@ const shortcuts = [
 const ClienteDashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { agendamentos, loading } = useAgendamentos();
+  const { agendamentos, loading } = useAgendamentosCliente();
   
   const firstName = profile?.nome?.split(' ')[0] || 'Cliente';
 
