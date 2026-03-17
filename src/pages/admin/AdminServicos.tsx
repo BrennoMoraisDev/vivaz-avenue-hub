@@ -11,6 +11,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Pencil, Trash2, Power, Loader2, Scissors } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ImageUpload } from '@/components/ui/ImageUpload';
+import { useState } from 'react';
 
 const emptyServico: Partial<Servico> = {
   nome: '', descricao: '', preco: 0, duracao_minutos: 30, categoria_id: null, foto: '', ativo: true,
@@ -162,7 +164,14 @@ const AdminServicos = () => {
                 {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
             </div>
-            <div><Label>Foto (URL)</Label><Input value={editing.foto || ''} onChange={(e) => setEditing({ ...editing, foto: e.target.value })} placeholder="https://..." /></div>
+            <div>
+              <ImageUpload
+                value={editing.foto || null}
+                onChange={(url) => setEditing({ ...editing, foto: url })}
+                bucket="servicos"
+                label="Foto do Serviço"
+              />
+            </div>
             <div className="flex items-center gap-2">
               <Switch checked={editing.ativo ?? true} onCheckedChange={(v) => setEditing({ ...editing, ativo: v })} />
               <Label>Ativo</Label>

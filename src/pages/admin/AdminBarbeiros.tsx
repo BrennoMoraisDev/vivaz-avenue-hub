@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Pencil, Power, Loader2, Users, Clock, CalendarOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ImageUpload } from '@/components/ui/ImageUpload';
+import { useState } from 'react';
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -218,8 +220,12 @@ const AdminBarbeiros = () => {
               <Input type="number" value={editing.comissao ?? 50} onChange={(e) => setEditing({ ...editing, comissao: parseFloat(e.target.value) })} />
             </div>
             <div>
-              <Label>Foto (URL)</Label>
-              <Input value={editing.foto || ''} onChange={(e) => setEditing({ ...editing, foto: e.target.value })} placeholder="https://..." />
+              <ImageUpload
+                value={editing.foto || null}
+                onChange={(url) => setEditing({ ...editing, foto: url })}
+                bucket="barbeiros"
+                label="Foto do Barbeiro"
+              />
             </div>
             {isNewBarbeiro && (
               <>
