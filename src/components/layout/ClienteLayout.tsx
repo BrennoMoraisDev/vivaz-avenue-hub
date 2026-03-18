@@ -1,4 +1,6 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import DesktopSidebar from './DesktopSidebar';
 import MobileNav from './MobileNav';
 import { Home, CalendarDays, Scissors, Clock, User } from 'lucide-react';
@@ -12,6 +14,17 @@ const clienteNav = [
 ];
 
 const ClienteLayout = () => {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Redirecionar para perfil no primeiro acesso se telefone não estiver preenchido
+  useEffect(() => {
+    if (profile && !profile.telefone && !location.pathname.includes('/perfil')) {
+      navigate('/cliente/perfil', { replace: true });
+    }
+  }, [profile, location.pathname, navigate]);
+
   return (
     <div className="min-h-screen">
       <DesktopSidebar items={clienteNav} />

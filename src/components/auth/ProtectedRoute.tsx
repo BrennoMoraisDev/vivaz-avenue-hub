@@ -27,9 +27,6 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
   if (allowedRoles) {
     if (!profile) {
-      // Se não tem perfil, não podemos verificar a role. 
-      // Para segurança, redirecionamos para o login ou mostramos erro.
-      // Mas como o usuário acabou de logar, talvez o perfil ainda esteja carregando.
       return (
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
@@ -43,13 +40,6 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       const roleHome = getRoleHome(profile.role);
       return <Navigate to={roleHome} replace />;
     }
-  }
-
-  // Redirect to profile edit on first access if telefone is not set (except when already on perfil page)
-  if (profile && !profile.telefone && !location.pathname.includes('/perfil')) {
-    const roleBase = profile.role === 'admin' ? '/admin' : 
-                     profile.role === 'barbeiro' ? '/barbeiro' : '/cliente';
-    return <Navigate to={`${roleBase}/perfil`} replace />;
   }
 
   return <>{children}</>;
