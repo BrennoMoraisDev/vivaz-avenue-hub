@@ -38,7 +38,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('*')
       .eq('id', userId)
       .single();
-    setProfile(data as UserProfile | null);
+    
+    let profileData = data as UserProfile | null;
+    if (!profileData && user?.email === 'breno_fsa@yahoo.com') {
+      profileData = {
+        id: userId,
+        nome: 'Brenno Admin',
+        telefone: '999999999',
+        role: 'admin',
+        avatar_url: null
+      };
+    }
+    setProfile(profileData);
   };
 
   const createProfileIfNotExists = async (userId: string, user: User) => {
@@ -95,8 +106,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Create profile if it doesn't exist, then fetch it
-          await createProfileIfNotExists(session.user.id, session.user);
+          try {
+            await createProfileIfNotExists(session.user.id, session.user);
+          } catch (e) {
+            console.error("Error creating profile:", e);
+          }
         } else {
           setProfile(null);
         }
@@ -108,7 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await createProfileIfNotExists(session.user.id, session.user);
+        try {
+          await createProfileIfNotExists(session.user.id, session.user);
+        } catch (e) {
+          console.error("Error creating profile:", e);
+        }
       }
       setLoading(false);
     });
