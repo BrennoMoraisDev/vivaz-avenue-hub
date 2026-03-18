@@ -1,14 +1,15 @@
 {
   "name": "Vivaz Barbearia Avenue",
   "short_name": "Vivaz",
-  "description": "Agendamento premium para barbearia de luxo. Agende seu horário com os melhores barbeiros.",
+  "description": "Agende seu corte na Vivaz Barbearia Avenue — Tradição, Estilo e Cuidado. Sistema completo de agendamento online.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0A0A0A",
   "theme_color": "#D4AF37",
-  "categories": ["business", "lifestyle"],
+  "categories": ["business", "lifestyle", "beauty"],
+  "lang": "pt-BR",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -63,5 +64,6 @@
       ]
     }
   ],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "display_override": ["standalone", "minimal-ui"]
 }

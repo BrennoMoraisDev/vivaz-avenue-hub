@@ -46,8 +46,18 @@ import AdminClientes from "./pages/admin/AdminClientes";
 import AdminBloqueios from "./pages/admin/AdminBloqueios";
 import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
 import AdminPerfil from "./pages/admin/AdminPerfil";
+import AdminBI from "./pages/admin/AdminBI";
+import AdminFidelidade from "./pages/admin/AdminFidelidade";
+import AdminLembretes from "./pages/admin/AdminLembretes";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutos
+      retry: 2,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -111,6 +121,9 @@ const App = () => (
               <Route path="/admin/servicos" element={<AdminServicos />} />
               <Route path="/admin/categorias" element={<AdminCategorias />} />
               <Route path="/admin/clientes" element={<AdminClientes />} />
+              <Route path="/admin/fidelidade" element={<AdminFidelidade />} />
+              <Route path="/admin/lembretes" element={<AdminLembretes />} />
+              <Route path="/admin/bi" element={<AdminBI />} />
               <Route path="/admin/bloqueios" element={<AdminBloqueios />} />
               <Route path="/admin/configuracoes" element={<AdminConfiguracoes />} />
               <Route path="/admin/perfil" element={<AdminPerfil />} />
