@@ -23,8 +23,8 @@ const ClientePerfil = () => {
   const handleSave = async () => {
     if (!user?.id) return;
     try {
-      const { error } = await supabase
-        .from('perfis')
+      const { error } = await (supabase
+        .from('perfis') as any)
         .update({ nome, telefone, avatar_url: avatarUrl })
         .eq('id', user.id);
       if (error) throw error;
