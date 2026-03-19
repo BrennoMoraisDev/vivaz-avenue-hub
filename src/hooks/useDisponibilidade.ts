@@ -94,7 +94,7 @@ export function useDiasTrabalho(barbeiroId: string | null) {
         .eq('barbeiro_id', barbeiroId);
       
       if (data) {
-        setDias(new Set(data.map(d => d.dia_semana)));
+        setDias(new Set((data as any[]).map(d => d.dia_semana)));
       }
     };
     fetch();

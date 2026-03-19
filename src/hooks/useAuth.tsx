@@ -77,9 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: userId,
           nome,
           telefone: null,
-          role: 'cliente',
+          role: 'cliente' as const,
           avatar_url: user.user_metadata?.avatar_url || null,
-        })
+        } as any)
         .select()
         .single();
 

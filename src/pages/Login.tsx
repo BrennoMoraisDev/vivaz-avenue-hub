@@ -37,7 +37,7 @@ const Login = () => {
         .eq('id', data.user.id)
         .single();
       
-      const role = profileData?.role ?? 'cliente';
+      const role = (profileData as any)?.role ?? 'cliente';
       navigate(getRoleHome(role as any), { replace: true });
       setLoading(false);
     } else {
