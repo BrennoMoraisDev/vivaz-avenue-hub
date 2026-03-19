@@ -40,13 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
     
     let profileData = data as UserProfile | null;
-    if (!profileData && user?.email === 'breno_fsa@yahoo.com') {
+    const adminEmails = ['breno_fsa@yahoo.com', 'brennomoraisdev@gmail.com'];
+    if (!profileData && user?.email && adminEmails.includes(user.email)) {
       profileData = {
         id: userId,
-        nome: 'Brenno Admin',
-        telefone: '999999999',
+        nome: user.user_metadata?.full_name || 'Admin',
+        telefone: user.user_metadata?.phone || '999999999',
         role: 'admin',
-        avatar_url: null
+        avatar_url: user.user_metadata?.avatar_url || null
       };
     }
     setProfile(profileData);

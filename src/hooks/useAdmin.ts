@@ -93,102 +93,100 @@ export function useAdminMetrics() {
     const inicioMesStr = inicioMes.toISOString().split('T')[0];
 
     // Parallel fetches
-    const [
-      { data: agHoje },
-      { data: agMes },
-      { count: clientesCount },
-      { count: barbeirosCount },
-      { data: proximos },
-    ] = await Promise.all([
-      supabase
+    try {
+      const [
+        { data: agHoje },
+        { data: agMes },
+        { count: clientesCount },
+        { count: barbeirosCount },
+        { data: proximos },
+      ] = await Promise.all([
+        supabase
+          .from('agendamentos')
+          .select('*, servicos(nome, preco)')
+          .eq('data', hoje),
+        supabase
+          .from('agendamentos')
+          .select('*, servicos(preco)')
+          .eq('status', 'finalizado')
+          .gte('data', inicioMesStr),
+        supabase.from('clientes').select('*', { count: 'exact', head: true }),
+        supabase.from('barbeiros').select('*', { count: 'exact', head: true }).eq('ativo', true),
+        supabase
+          .from('agendamentos')
+          .select('*, clientes(nome, telefone), servicos(nome, preco, duracao_minutos), barbeiros(nome)')
+          .gte('data', hoje)
+          .in('status', ['agendado', 'confirmado'])
+          .order('data')
+          .order('hora')
+          .limit(5),
+      ]);
+
+      const fatHoje = (agHoje || [])
+        .filter((a: any) => a.status === 'finalizado')
+        .reduce((s: number, a: any) => s + (a.servicos?.preco || 0), 0);
+      const fatMes = (agMes || []).reduce((s: number, a: any) => s + (a.servicos?.preco || 0), 0);
+
+      setMetrics({
+        faturamentoHoje: fatHoje,
+        faturamentoMes: fatMes,
+        agendamentosHoje: (agHoje || []).length,
+        clientesCadastrados: clientesCount || 0,
+        barbeirosAtivos: barbeirosCount || 0,
+      });
+      setProximosAgendamentos((proximos as AgendamentoAdmin[]) || []);
+
+      // Agendamentos por dia (últimos 7 dias)
+      const nomesDia = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      
+      // Fetch last 7 days agendamentos for chart
+      const seteDiasAtras = new Date();
+      seteDiasAtras.setDate(seteDiasAtras.getDate() - 6);
+      const { data: ag7dias } = await supabase
         .from('agendamentos')
-        .select('*, servicos(nome, preco)')
-        .eq('data', hoje),
-      supabase
+        .select('data')
+        .gte('data', seteDiasAtras.toISOString().split('T')[0]);
+
+      const diasMap: Record<string, number> = {};
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        diasMap[d.toISOString().split('T')[0]] = 0;
+      }
+      (ag7dias || []).forEach((a: any) => {
+        if (diasMap[a.data] !== undefined) diasMap[a.data]++;
+      });
+      const diasChart = Object.entries(diasMap).map(([date, total]) => ({
+        dia: nomesDia[new Date(date + 'T12:00:00').getDay()],
+        total,
+      }));
+      setAgendamentosPorDia(diasChart);
+
+      // Serviços mais realizados
+      const { data: agServicos } = await supabase
         .from('agendamentos')
-        .select('*, servicos(preco)')
+        .select('servicos(nome)')
         .eq('status', 'finalizado')
-        .gte('data', inicioMesStr),
-      supabase.from('clientes').select('*', { count: 'exact', head: true }),
-      supabase.from('barbeiros').select('*', { count: 'exact', head: true }).eq('ativo', true),
-      supabase
-        .from('agendamentos')
-        .select('*, clientes(nome, telefone), servicos(nome, preco, duracao_minutos), barbeiros(nome)')
-        .gte('data', hoje)
-        .in('status', ['agendado', 'confirmado'])
-        .order('data')
-        .order('hora')
-        .limit(5),
-    ]);
+        .gte('data', inicioMesStr);
 
-    const fatHoje = (agHoje || [])
-      .filter((a: any) => a.status === 'finalizado')
-      .reduce((s: number, a: any) => s + (a.servicos?.preco || 0), 0);
-    const fatMes = (agMes || []).reduce((s: number, a: any) => s + (a.servicos?.preco || 0), 0);
-
-    setMetrics({
-      faturamentoHoje: fatHoje,
-      faturamentoMes: fatMes,
-      agendamentosHoje: (agHoje || []).length,
-      clientesCadastrados: clientesCount || 0,
-      barbeirosAtivos: barbeirosCount || 0,
-    });
-    setProximosAgendamentos((proximos as AgendamentoAdmin[]) || []);
-
-    // Agendamentos por dia (últimos 7 dias)
-    const dias: { dia: string; total: number }[] = [];
-    const nomesDia = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dStr = d.toISOString().split('T')[0];
-      const count = (agHoje || []).filter((a: any) => a.data === dStr).length;
-      dias.push({ dia: nomesDia[d.getDay()], total: count });
+      const servMap: Record<string, number> = {};
+      (agServicos || []).forEach((a: any) => {
+        const nome = a.servicos?.nome || 'Desconhecido';
+        servMap[nome] = (servMap[nome] || 0) + 1;
+      });
+      setServicosMaisRealizados(
+        Object.entries(servMap)
+          .map(([nome, total]) => ({ nome, total }))
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 5)
+      );
+    } catch (error) {
+      console.error('Erro ao buscar métricas:', error);
+    } finally {
+      setLoading(false);
     }
 
-    // Fetch last 7 days agendamentos for chart
-    const seteDiasAtras = new Date();
-    seteDiasAtras.setDate(seteDiasAtras.getDate() - 6);
-    const { data: ag7dias } = await supabase
-      .from('agendamentos')
-      .select('data')
-      .gte('data', seteDiasAtras.toISOString().split('T')[0]);
 
-    const diasMap: Record<string, number> = {};
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      diasMap[d.toISOString().split('T')[0]] = 0;
-    }
-    (ag7dias || []).forEach((a: any) => {
-      if (diasMap[a.data] !== undefined) diasMap[a.data]++;
-    });
-    const diasChart = Object.entries(diasMap).map(([date, total]) => ({
-      dia: nomesDia[new Date(date + 'T12:00:00').getDay()],
-      total,
-    }));
-    setAgendamentosPorDia(diasChart);
-
-    // Serviços mais realizados
-    const { data: agServicos } = await supabase
-      .from('agendamentos')
-      .select('servicos(nome)')
-      .eq('status', 'finalizado')
-      .gte('data', inicioMesStr);
-
-    const servMap: Record<string, number> = {};
-    (agServicos || []).forEach((a: any) => {
-      const nome = a.servicos?.nome || 'Desconhecido';
-      servMap[nome] = (servMap[nome] || 0) + 1;
-    });
-    setServicosMaisRealizados(
-      Object.entries(servMap)
-        .map(([nome, total]) => ({ nome, total }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5)
-    );
-
-    setLoading(false);
   }, []);
 
   useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
