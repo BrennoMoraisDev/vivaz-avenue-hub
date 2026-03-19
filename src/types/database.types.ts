@@ -1,6 +1,4 @@
 // Tipos do banco de dados Vivaz Barbearia
-// Para gerar automaticamente: npx supabase gen types typescript --project-id okmuhustvzkbwxsfemxn > src/types/database.types.ts
-
 export type UserRole = 'cliente' | 'barbeiro' | 'admin';
 export type AgendamentoStatus = 'agendado' | 'confirmado' | 'em atendimento' | 'finalizado' | 'cancelado' | 'faltou';
 
@@ -86,6 +84,28 @@ export interface Database {
         };
       };
       horarios_barbeiro: {
+        Row: {
+          id: string;
+          barbeiro_id: string;
+          dia_semana: number;
+          inicio: string;
+          fim: string;
+        };
+        Insert: {
+          id?: string;
+          barbeiro_id: string;
+          dia_semana: number;
+          inicio: string;
+          fim: string;
+        };
+        Update: {
+          barbeiro_id?: string;
+          dia_semana?: number;
+          inicio?: string;
+          fim?: string;
+        };
+      };
+      horarios_trabalho: {
         Row: {
           id: string;
           barbeiro_id: string;
@@ -227,6 +247,53 @@ export interface Database {
         Update: {
           nota?: number;
           comentario?: string | null;
+        };
+      };
+      configuracoes: {
+        Row: {
+          id: string;
+          chave: string;
+          valor: string | null;
+          tipo: string | null;
+          descricao: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          chave: string;
+          valor?: string | null;
+          tipo?: string | null;
+          descricao?: string | null;
+        };
+        Update: {
+          chave?: string;
+          valor?: string | null;
+          tipo?: string | null;
+          descricao?: string | null;
+        };
+      };
+      fidelidade: {
+        Row: {
+          id: string;
+          cliente_id: string;
+          agendamento_id: string | null;
+          pontos: number;
+          tipo: string;
+          descricao: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          cliente_id: string;
+          agendamento_id?: string | null;
+          pontos: number;
+          tipo: string;
+          descricao?: string | null;
+        };
+        Update: {
+          pontos?: number;
+          tipo?: string;
+          descricao?: string | null;
         };
       };
     };

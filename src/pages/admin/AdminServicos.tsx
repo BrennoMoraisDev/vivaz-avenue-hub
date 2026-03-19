@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Pencil, Trash2, Power, Loader2, Scissors } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ImageUpload } from '@/components/ui/ImageUpload';
-import { useState } from 'react';
 
 const emptyServico: Partial<Servico> = {
   nome: '', descricao: '', preco: 0, duracao_minutos: 30, categoria_id: null, foto: '', ativo: true,

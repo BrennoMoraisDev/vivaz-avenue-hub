@@ -46,7 +46,7 @@ export function useFidelidade() {
         .eq('chave', 'fidelidade_pontos_para_resgate')
         .single();
 
-      const meta = configData?.valor ? parseInt(configData.valor) : META_PADRAO;
+      const meta = configData ? parseInt((configData as any).valor) : META_PADRAO;
 
       // Busca histórico de fidelidade
       const { data: histData } = await supabase

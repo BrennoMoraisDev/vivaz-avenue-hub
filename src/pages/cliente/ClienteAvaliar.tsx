@@ -65,8 +65,8 @@ const ClienteAvaliar = () => {
 
     setEnviando(true);
     try {
-      const { error } = await supabase
-        .from('avaliacoes')
+      const { error } = await (supabase
+        .from('avaliacoes') as any)
         .insert({
           agendamento_id: agendamento.id,
           cliente_id: profile.id,

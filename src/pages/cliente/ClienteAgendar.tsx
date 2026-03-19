@@ -79,8 +79,8 @@ const ClienteAgendar = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('agendamentos')
+      const { error } = await (supabase
+        .from('agendamentos') as any)
         .insert({
           cliente_id: profile.id,
           barbeiro_id: barbeiroId,

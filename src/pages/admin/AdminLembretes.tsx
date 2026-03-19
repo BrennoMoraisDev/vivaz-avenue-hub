@@ -51,7 +51,7 @@ const AdminLembretes = () => {
             .order('data', { ascending: false })
             .limit(1);
 
-          const ultimo = ags?.[0]?.data || null;
+          const ultimo = (ags as any)?.[0]?.data || null;
           let diasSemVisita = 999;
 
           if (ultimo) {

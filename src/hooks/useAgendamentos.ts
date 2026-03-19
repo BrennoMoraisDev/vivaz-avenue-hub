@@ -54,9 +54,9 @@ export function useAgendamentosCliente(filters?: { status?: AgendamentoStatus | 
 
   const cancelarAgendamento = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: 'cancelado' })
+      const { error } = await (supabase
+        .from('agendamentos') as any)
+        .update({ status: 'cancelado' as const })
         .eq('id', id);
       
       if (error) throw error;

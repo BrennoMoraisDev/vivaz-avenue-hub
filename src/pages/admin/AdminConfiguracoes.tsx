@@ -61,8 +61,8 @@ const AdminConfiguracoes = () => {
         tipo: typeof valor === 'boolean' ? 'boolean' : 'string',
       }));
 
-      const { error } = await supabase
-        .from('configuracoes')
+      const { error } = await (supabase
+        .from('configuracoes') as any)
         .upsert(upserts, { onConflict: 'chave' });
 
       if (error) throw error;

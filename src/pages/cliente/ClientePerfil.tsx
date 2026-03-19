@@ -23,8 +23,8 @@ const ClientePerfil = () => {
   const handleSave = async () => {
     if (!user?.id) return;
     try {
-      const { error } = await supabase
-        .from('perfis')
+      const { error } = await (supabase
+        .from('perfis') as any)
         .update({ nome, telefone, avatar_url: avatarUrl })
         .eq('id', user.id);
       if (error) throw error;
@@ -116,7 +116,7 @@ const ClientePerfil = () => {
               {avatarUrl && (
                 <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive" onClick={() => {
                   setAvatarUrl(null);
-                  supabase.from('perfis').update({ avatar_url: null }).eq('id', user?.id).then(() => {
+                  (supabase.from('perfis') as any).update({ avatar_url: null }).eq('id', user?.id).then(() => {
                     refreshProfile();
                     toast({ title: 'Foto removida', description: 'Sua foto de perfil foi removida.' });
                   });
