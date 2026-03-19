@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Pencil, Power, Loader2, Users, Clock, CalendarOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ImageUpload } from '@/components/ui/ImageUpload';
-import { useState } from 'react';
 
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
