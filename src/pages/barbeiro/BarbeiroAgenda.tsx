@@ -22,6 +22,7 @@ const BarbeiroAgenda = () => {
     status: statusFiltro,
   });
 
+
   const handleStatus = async (id: string, status: AgendamentoStatus) => {
     const { error } = await updateAgendamentoStatus(id, status);
     if (error) {

@@ -49,6 +49,21 @@ async function fetchOrCreateProfile(userId: string, authUser: User): Promise<Use
   }
 
   if (existing) {
+    // Garantir que o registro de cliente existe (caso a trigger não tenha sido executada)
+    if (existing.role === 'cliente') {
+      setTimeout(async () => {
+        try {
+          await supabase.from('clientes').insert({
+            id: userId,
+            nome: existing.nome,
+            telefone: existing.telefone,
+            user_id: userId,
+          } as any).select().maybeSingle();
+        } catch (_) {
+          // Ignore - may already exist (ON CONFLICT handled by DB)
+        }
+      }, 200);
+    }
     return applyAdminRole(existing as UserProfile, authUser.email);
   }
 

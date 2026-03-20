@@ -85,28 +85,44 @@ export function useAgendamentosFiltrados(
 ) {
   const [agendamentos, setAgendamentos] = useState<AgendamentoCompleto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trigger, setTrigger] = useState(0);
 
-  const fetch = useCallback(async () => {
-    if (!barbeiroId) return;
+  const refetch = useCallback(() => setTrigger(t => t + 1), []);
+
+  useEffect(() => {
+    if (!barbeiroId) {
+      setLoading(false);
+      setAgendamentos([]);
+      return;
+    }
+    let cancelled = false;
     setLoading(true);
-    let query = supabase
-      .from('agendamentos')
-      .select('*, clientes(nome, telefone), servicos(nome, preco, duracao_minutos)')
-      .eq('barbeiro_id', barbeiroId)
-      .order('data', { ascending: false })
-      .order('hora', { ascending: false });
 
-    if (filters.dataInicio) query = query.gte('data', filters.dataInicio);
-    if (filters.dataFim) query = query.lte('data', filters.dataFim);
-    if (filters.status && filters.status !== 'todos') query = query.eq('status', filters.status);
+    const doFetch = async () => {
+      let query = supabase
+        .from('agendamentos')
+        .select('*, clientes(nome, telefone), servicos(nome, preco, duracao_minutos)')
+        .eq('barbeiro_id', barbeiroId)
+        .order('data', { ascending: false })
+        .order('hora', { ascending: false });
 
-    const { data: rows } = await query;
-    setAgendamentos((rows as AgendamentoCompleto[]) || []);
-    setLoading(false);
-  }, [barbeiroId, filters.dataInicio, filters.dataFim, filters.status]);
+      if (filters.dataInicio) query = query.gte('data', filters.dataInicio);
+      if (filters.dataFim) query = query.lte('data', filters.dataFim);
+      if (filters.status && filters.status !== 'todos') query = query.eq('status', filters.status);
 
-  useEffect(() => { fetch(); }, [fetch]);
-  return { agendamentos, loading, refetch: fetch };
+      const { data: rows, error } = await query;
+      if (error) console.error('useAgendamentosFiltrados error:', error);
+      if (!cancelled) {
+        setAgendamentos((rows as AgendamentoCompleto[]) || []);
+        setLoading(false);
+      }
+    };
+
+    doFetch();
+    return () => { cancelled = true; };
+  }, [barbeiroId, filters.dataInicio, filters.dataFim, filters.status, trigger]);
+
+  return { agendamentos, loading, refetch };
 }
 
 // Hook: ganhos calculation
