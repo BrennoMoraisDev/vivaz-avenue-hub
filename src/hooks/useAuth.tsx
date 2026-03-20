@@ -71,9 +71,14 @@ async function fetchOrCreateProfile(userId: string, authUser: User): Promise<Use
             // Se for barbeiro, mudar o role para 'barbeiro'
             if (barberData) {
               existing.role = 'barbeiro' as UserRole;
+              // Atualizar o perfil no banco de dados para refletir o novo role
+              await supabase
+                .from('perfis')
+                .update({ role: 'barbeiro' })
+                .eq('id', userId);
             }
-          } catch (_) {
-            // Ignore errors
+          } catch (error) {
+            console.error('Error checking barber profile:', error);
           }
           
           // Garantir que o registro de cliente existe (caso a trigger não tenha sido executada)
