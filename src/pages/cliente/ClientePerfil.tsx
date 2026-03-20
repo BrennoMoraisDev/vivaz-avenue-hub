@@ -28,6 +28,10 @@ const ClientePerfil = () => {
         .update({ nome, telefone, avatar_url: avatarUrl })
         .eq('id', user.id);
       if (error) throw error;
+      // Sincroniza tabela clientes (necessário para FK de agendamentos)
+      await (supabase.from('clientes') as any)
+        .upsert({ id: user.id, nome, telefone, user_id: user.id })
+        .eq('id', user.id);
       await refreshProfile();
       toast({ title: 'Perfil atualizado', description: 'Suas informações foram salvas com sucesso.' });
       setEditing(false);

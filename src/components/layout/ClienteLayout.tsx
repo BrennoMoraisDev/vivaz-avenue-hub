@@ -19,8 +19,9 @@ const ClienteLayout = () => {
   const location = useLocation();
 
   // Redirecionar para perfil no primeiro acesso se telefone não estiver preenchido
+  // Admin não precisa de telefone para acessar área cliente
   useEffect(() => {
-    if (profile && !profile.telefone && !location.pathname.includes('/perfil')) {
+    if (profile && profile.role !== 'admin' && !profile.telefone && !location.pathname.includes('/perfil')) {
       navigate('/cliente/perfil', { replace: true });
     }
   }, [profile, location.pathname, navigate]);

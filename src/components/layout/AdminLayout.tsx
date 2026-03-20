@@ -3,7 +3,8 @@ import DesktopSidebar from './DesktopSidebar';
 import MobileNav from './MobileNav';
 import {
   CalendarDays, Users, Scissors, Tag, Settings,
-  LayoutDashboard, CalendarOff, UserCircle, BarChart3, Star, Bell
+  LayoutDashboard, CalendarOff, UserCircle, BarChart3, Star, Bell,
+  Scissors as ScissorsIcon, User
 } from 'lucide-react';
 
 const adminNav = [
@@ -19,6 +20,10 @@ const adminNav = [
   { icon: CalendarOff, label: 'Bloqueios', path: '/admin/bloqueios' },
   { icon: Settings, label: 'Configurações', path: '/admin/configuracoes' },
   { icon: UserCircle, label: 'Perfil', path: '/admin/perfil' },
+  // Admin também acessa como barbeiro
+  { icon: ScissorsIcon, label: 'Área Barbeiro', path: '/barbeiro/dashboard' },
+  // Admin também acessa como cliente
+  { icon: User, label: 'Área Cliente', path: '/cliente/dashboard' },
 ];
 
 const AdminLayout = () => {

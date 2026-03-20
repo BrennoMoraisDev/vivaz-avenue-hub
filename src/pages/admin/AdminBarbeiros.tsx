@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Pencil, Power, Loader2, Users, Clock, CalendarOff } from 'lucide-react';
+import { Plus, Search, Pencil, Power, Loader2, Users, Clock, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ImageUpload } from '@/components/ui/ImageUpload';
 
@@ -49,61 +49,118 @@ const AdminBarbeiros = () => {
       return;
     }
 
-    // If creating new barbeiro with email, use the create-barbeiro-user function
-    if (!editing.id && editing.email && isNewBarbeiro) {
-      setSaving(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch(
-          'https://okmuhustvzkbwxsfemxn.functions.supabase.co/create-barbeiro-user',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session?.access_token || ''}`,
-            },
-            body: JSON.stringify({
-              nome: editing.nome,
-              email: editing.email,
-              telefone: editing.telefone,
-              especialidade: editing.especialidade,
-              comissao: editing.comissao,
-              senha: editing.senha,
-            }),
-          }
-        );
-
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error);
-
-        toast({
-          title: 'Barbeiro criado com sucesso',
-          description: result.temporarySenha
-            ? `Senha temporária: ${result.temporarySenha}. O barbeiro deve alterar no primeiro login.`
-            : 'O barbeiro pode fazer login agora.',
-        });
-        setModalOpen(false);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await refetch();
-      } catch (error: any) {
-        toast({ title: 'Erro ao criar barbeiro', description: error.message, variant: 'destructive' });
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
-
-    // Regular update/create without email
     setSaving(true);
-    const { error } = editing.id
-      ? await atualizar(editing.id, editing as any)
-      : await criar(editing as any);
-    setSaving(false);
-    if (error) {
-      toast({ title: 'Erro ao salvar', description: (error as any).message, variant: 'destructive' });
-    } else {
-      toast({ title: editing.id ? 'Barbeiro atualizado' : 'Barbeiro criado' });
-      setModalOpen(false);
+
+    try {
+      // Se está criando novo barbeiro com email e senha, tenta criar conta de usuário
+      if (!editing.id && editing.email && editing.senha && isNewBarbeiro) {
+        // Tentar criar usuário via signup
+        const { data: signupData, error: signupError } = await supabase.auth.signUp({
+          email: editing.email,
+          password: editing.senha,
+          options: {
+            data: {
+              nome: editing.nome,
+              telefone: editing.telefone,
+            },
+          },
+        });
+
+        if (signupError) {
+          // Se falhar por rate limit ou outro erro, criar barbeiro sem conta de usuário
+          console.warn('Signup falhou, criando barbeiro sem conta:', signupError.message);
+          
+          const { error: barbeiroError } = await criar({
+            nome: editing.nome,
+            telefone: editing.telefone,
+            especialidade: editing.especialidade || null,
+            comissao: editing.comissao ?? 50,
+            ativo: editing.ativo ?? true,
+            foto: editing.foto || null,
+          } as any);
+
+          if (barbeiroError) {
+            toast({ title: 'Erro ao criar barbeiro', description: (barbeiroError as any).message, variant: 'destructive' });
+          } else {
+            toast({
+              title: 'Barbeiro criado (sem conta de login)',
+              description: `Barbeiro ${editing.nome} criado. Conta de login não pôde ser criada: ${signupError.message}. O barbeiro pode se cadastrar manualmente em /register.`,
+            });
+            setModalOpen(false);
+          }
+          return;
+        }
+
+        const userId = signupData.user?.id;
+        if (!userId) {
+          toast({ title: 'Erro ao criar usuário', variant: 'destructive' });
+          return;
+        }
+
+        // Criar perfil com role barbeiro
+        const { error: profileError } = await supabase
+          .from('perfis')
+          .upsert({
+            id: userId,
+            nome: editing.nome,
+            telefone: editing.telefone,
+            role: 'barbeiro',
+          } as any);
+
+        if (profileError) {
+          console.error('Erro ao criar perfil:', profileError);
+        }
+
+        // Criar registro de barbeiro vinculado ao usuário
+        const { error: barbeiroError } = await criar({
+          nome: editing.nome,
+          telefone: editing.telefone,
+          especialidade: editing.especialidade || null,
+          comissao: editing.comissao ?? 50,
+          ativo: editing.ativo ?? true,
+          foto: editing.foto || null,
+          user_id: userId,
+        } as any);
+
+        if (barbeiroError) {
+          toast({ title: 'Erro ao criar barbeiro', description: (barbeiroError as any).message, variant: 'destructive' });
+        } else {
+          toast({
+            title: '✅ Barbeiro criado com sucesso!',
+            description: `${editing.nome} pode fazer login com o email ${editing.email}. Um email de confirmação foi enviado.`,
+          });
+          setModalOpen(false);
+        }
+        return;
+      }
+
+      // Criação/edição sem conta de usuário
+      const { error } = editing.id
+        ? await atualizar(editing.id, {
+            nome: editing.nome,
+            telefone: editing.telefone,
+            especialidade: editing.especialidade,
+            comissao: editing.comissao,
+            ativo: editing.ativo,
+            foto: editing.foto,
+          } as any)
+        : await criar({
+            nome: editing.nome,
+            telefone: editing.telefone,
+            especialidade: editing.especialidade || null,
+            comissao: editing.comissao ?? 50,
+            ativo: editing.ativo ?? true,
+            foto: editing.foto || null,
+          } as any);
+
+      if (error) {
+        toast({ title: 'Erro ao salvar', description: (error as any).message, variant: 'destructive' });
+      } else {
+        toast({ title: editing.id ? 'Barbeiro atualizado' : 'Barbeiro criado' });
+        setModalOpen(false);
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -166,9 +223,13 @@ const AdminBarbeiros = () => {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-lg">
-                    {(b.nome || '?')[0].toUpperCase()}
-                  </div>
+                  {b.foto ? (
+                    <img src={b.foto} alt={b.nome || ''} className="h-12 w-12 rounded-xl object-cover" />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-lg">
+                      {(b.nome || '?')[0].toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-heading text-sm font-semibold text-foreground">{b.nome}</h3>
                     <p className="text-xs text-muted-foreground">{b.especialidade || 'Barbeiro'}</p>
@@ -181,6 +242,7 @@ const AdminBarbeiros = () => {
               <div className="space-y-1 text-xs text-muted-foreground">
                 <p>📞 {b.telefone || '—'}</p>
                 <p>💰 Comissão: {b.comissao ?? 0}%</p>
+                {b.user_id && <p className="text-emerald-400">✓ Conta de login vinculada</p>}
               </div>
               <div className="mt-3 flex gap-2">
                 <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={(e) => { e.stopPropagation(); openEdit(b); }}>
@@ -197,26 +259,26 @@ const AdminBarbeiros = () => {
 
       {/* Modal Criar/Editar */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing.id ? 'Editar Barbeiro' : 'Novo Barbeiro'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
               <Label>Nome *</Label>
-              <Input value={editing.nome || ''} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} />
+              <Input value={editing.nome || ''} onChange={(e) => setEditing({ ...editing, nome: e.target.value })} placeholder="Nome do barbeiro" />
             </div>
             <div>
               <Label>Telefone *</Label>
-              <Input value={editing.telefone || ''} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} />
+              <Input value={editing.telefone || ''} onChange={(e) => setEditing({ ...editing, telefone: e.target.value })} placeholder="(11) 99999-9999" />
             </div>
             <div>
               <Label>Especialidade</Label>
-              <Input value={editing.especialidade || ''} onChange={(e) => setEditing({ ...editing, especialidade: e.target.value })} />
+              <Input value={editing.especialidade || ''} onChange={(e) => setEditing({ ...editing, especialidade: e.target.value })} placeholder="Ex: Cortes modernos, Barba" />
             </div>
             <div>
               <Label>Comissão (%)</Label>
-              <Input type="number" value={editing.comissao ?? 50} onChange={(e) => setEditing({ ...editing, comissao: parseFloat(e.target.value) })} />
+              <Input type="number" min="0" max="100" value={editing.comissao ?? 50} onChange={(e) => setEditing({ ...editing, comissao: parseFloat(e.target.value) })} />
             </div>
             <div>
               <ImageUpload
@@ -228,29 +290,35 @@ const AdminBarbeiros = () => {
             </div>
             {isNewBarbeiro && (
               <>
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-3">
+                  <div className="flex items-start gap-2">
+                    <Info size={14} className="text-primary mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      Para que o barbeiro possa fazer login, preencha o email e senha abaixo. 
+                      Se preferir, deixe em branco e o barbeiro pode se cadastrar em <strong>/register</strong> e você vincula depois.
+                    </p>
+                  </div>
+                </div>
                 <div>
-                  <Label>Email do Barbeiro {editing.email ? '' : '(opcional)'}</Label>
+                  <Label>Email do Barbeiro (opcional)</Label>
                   <Input
                     type="email"
                     value={editing.email || ''}
                     onChange={(e) => setEditing({ ...editing, email: e.target.value })}
                     placeholder="barbeiro@email.com"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Se fornecido, o barbeiro poderá fazer login com suas credenciais.
-                  </p>
                 </div>
                 {editing.email && (
                   <div>
-                    <Label>Senha Temporária (opcional)</Label>
+                    <Label>Senha *</Label>
                     <Input
                       type="password"
                       value={editing.senha || ''}
                       onChange={(e) => setEditing({ ...editing, senha: e.target.value })}
-                      placeholder="Deixe em branco para gerar automaticamente"
+                      placeholder="Mínimo 6 caracteres"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Se não preenchida, uma senha será gerada automaticamente.
+                      O barbeiro receberá um email de confirmação para ativar a conta.
                     </p>
                   </div>
                 )}
@@ -265,7 +333,7 @@ const AdminBarbeiros = () => {
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Salvar
+              {editing.id ? 'Atualizar' : 'Criar Barbeiro'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -273,7 +341,7 @@ const AdminBarbeiros = () => {
 
       {/* Modal Detalhes */}
       <Dialog open={detalhesOpen} onOpenChange={setDetalhesOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedBarbeiro?.nome || 'Barbeiro'}</DialogTitle>
           </DialogHeader>
@@ -289,6 +357,18 @@ const AdminBarbeiros = () => {
                   <div><span className="text-muted-foreground">Especialidade:</span> {selectedBarbeiro.especialidade || '—'}</div>
                   <div><span className="text-muted-foreground">Comissão:</span> {selectedBarbeiro.comissao ?? 0}%</div>
                   <div><span className="text-muted-foreground">Status:</span> {selectedBarbeiro.ativo ? '✅ Ativo' : '❌ Inativo'}</div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Login:</span>{' '}
+                    {selectedBarbeiro.user_id ? '✅ Conta vinculada' : '⚠️ Sem conta de login'}
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button size="sm" variant="outline" onClick={() => { setDetalhesOpen(false); openEdit(selectedBarbeiro); }}>
+                    <Pencil size={12} className="mr-1" /> Editar dados
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleToggle(selectedBarbeiro)}>
+                    <Power size={12} className="mr-1" /> {selectedBarbeiro.ativo ? 'Desativar' : 'Ativar'}
+                  </Button>
                 </div>
               </TabsContent>
               <TabsContent value="horarios" className="pt-4">

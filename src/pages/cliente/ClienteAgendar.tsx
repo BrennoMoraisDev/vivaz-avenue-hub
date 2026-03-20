@@ -142,7 +142,7 @@ const ClienteAgendar = () => {
               <AlertCircle size={36} className="mx-auto mb-3 text-amber-500/50" />
               <p className="text-sm text-muted-foreground mb-2">Nenhum serviço disponível</p>
               <p className="text-xs text-muted-foreground">O administrador ainda não cadastrou serviços. Tente novamente mais tarde.</p>
-              <Button variant="ghost" size="sm" className="mt-4" onClick={() => navigate('/cliente')}>
+              <Button variant="ghost" size="sm" className="mt-4" onClick={() => navigate('/cliente/dashboard')}>
                 Voltar ao início
               </Button>
             </div>
