@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // If profile exists but role is wrong for admin email, fix it in-memory
     if (profileData && currentEmail && adminEmails.includes(currentEmail) && profileData.role !== 'admin') {
       // Try to update the role in the database
-      await supabase.from('perfis').update({ role: 'admin' } as any).eq('id', userId);
+      await (supabase.from('perfis') as any).update({ role: 'admin' }).eq('id', userId);
       profileData = { ...profileData, role: 'admin' };
     }
 
