@@ -4,6 +4,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.1";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-client-info",
+};
+
 interface CreateBarbeiroRequest {
   nome: string;
   email: string;
@@ -16,19 +22,13 @@ interface CreateBarbeiroRequest {
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -40,7 +40,7 @@ serve(async (req) => {
     if (!nome || !email || !telefone) {
       return new Response(
         JSON.stringify({ error: "Nome, email e telefone são obrigatórios" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -54,7 +54,7 @@ serve(async (req) => {
     if (userExists) {
       return new Response(
         JSON.stringify({ error: "Usuário com este email já existe" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -73,7 +73,7 @@ serve(async (req) => {
       console.error("Auth error:", authError);
       return new Response(
         JSON.stringify({ error: authError?.message || "Erro ao criar usuário" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -93,7 +93,7 @@ serve(async (req) => {
       await supabase.auth.admin.deleteUser(userId);
       return new Response(
         JSON.stringify({ error: "Erro ao criar perfil do barbeiro" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -114,7 +114,7 @@ serve(async (req) => {
       await supabase.auth.admin.deleteUser(userId);
       return new Response(
         JSON.stringify({ error: "Erro ao criar registro do barbeiro" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -130,7 +130,7 @@ serve(async (req) => {
       }),
       {
         status: 201,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
@@ -141,7 +141,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
