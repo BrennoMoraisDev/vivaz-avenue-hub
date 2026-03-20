@@ -59,8 +59,24 @@ async function fetchOrCreateProfile(userId: string, authUser: User): Promise<Use
       }
 
       if (existing) {
-        // Garantir que o registro de cliente existe (caso a trigger não tenha sido executada)
+        // Verificar se o usuário é um barbeiro (mesmo se o role for 'cliente')
         if (existing.role === 'cliente') {
+          try {
+            const { data: barberData } = await supabase
+              .from('barbeiros')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('ativo', true)
+              .maybeSingle();
+            // Se for barbeiro, mudar o role para 'barbeiro'
+            if (barberData) {
+              existing.role = 'barbeiro' as UserRole;
+            }
+          } catch (_) {
+            // Ignore errors
+          }
+          
+          // Garantir que o registro de cliente existe (caso a trigger não tenha sido executada)
           setTimeout(async () => {
             try {
               await supabase.from('clientes').insert({
