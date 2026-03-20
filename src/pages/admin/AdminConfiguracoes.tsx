@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { Settings, Save, Loader2, Star, MessageCircle, Bell, Clock } from 'lucide-react';
+import { Settings, Save, Loader2, Star, MessageCircle, Bell, Clock, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ConfigItem {
@@ -32,6 +32,10 @@ const AdminConfiguracoes = () => {
     fidelidade_pontos_por_corte: '1',
     fidelidade_pontos_para_resgate: '10',
     dias_retorno_lembrete: '20',
+    instagram_url: '',
+    facebook_url: '',
+    tiktok_url: '',
+    google_maps_url: '',
   });
 
   useEffect(() => {
@@ -108,6 +112,16 @@ const AdminConfiguracoes = () => {
       ],
     },
     {
+      icon: Globe,
+      title: 'Redes Sociais e Links',
+      fields: [
+        { key: 'instagram_url', label: 'URL do Instagram', type: 'url', placeholder: 'https://instagram.com/suabarbearia' },
+        { key: 'facebook_url', label: 'URL do Facebook', type: 'url', placeholder: 'https://facebook.com/suabarbearia' },
+        { key: 'tiktok_url', label: 'URL do TikTok', type: 'url', placeholder: 'https://tiktok.com/@suabarbearia' },
+        { key: 'google_maps_url', label: 'Link Google Maps', type: 'url', placeholder: 'https://maps.google.com/...' },
+      ],
+    },
+    {
       icon: Star,
       title: 'Programa de Fidelidade',
       fields: [
@@ -154,7 +168,7 @@ const AdminConfiguracoes = () => {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {section.fields.map(field => (
-                  <div key={field.key} className={field.hint ? 'sm:col-span-2' : ''}>
+                  <div key={field.key} className={(field as any).hint ? 'sm:col-span-2' : ''}>
                     <Label className="text-sm">{field.label}</Label>
                     <Input
                       type={field.type}
