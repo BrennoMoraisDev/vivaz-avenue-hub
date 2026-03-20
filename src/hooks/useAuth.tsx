@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import type { UserRole } from '@/types/database.types';
@@ -35,77 +35,96 @@ function applyAdminRole(profile: UserProfile, email?: string | null): UserProfil
   return profile;
 }
 
+// Cache global para evitar múltiplas buscas simultâneas pelo mesmo perfil
+const profileCache: Record<string, Promise<UserProfile | null>> = {};
+
 async function fetchOrCreateProfile(userId: string, authUser: User): Promise<UserProfile | null> {
-  // Step 1: Try to fetch existing profile
-  const { data: existing, error: fetchError } = await supabase
-    .from('perfis')
-    .select('id, nome, telefone, role, avatar_url')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (fetchError) {
-    console.error('Error fetching profile:', fetchError.message);
-    return null;
+  // Se já houver uma busca em andamento para este usuário, retornar a mesma promessa
+  if (profileCache[userId]) {
+    return profileCache[userId];
   }
 
-  if (existing) {
-    // Garantir que o registro de cliente existe (caso a trigger não tenha sido executada)
-    if (existing.role === 'cliente') {
-      setTimeout(async () => {
-        try {
-          await supabase.from('clientes').insert({
-            id: userId,
-            nome: existing.nome,
-            telefone: existing.telefone,
-            user_id: userId,
-          } as any).select().maybeSingle();
-        } catch (_) {
-          // Ignore - may already exist (ON CONFLICT handled by DB)
-        }
-      }, 200);
-    }
-    return applyAdminRole(existing as UserProfile, authUser.email);
-  }
+  const fetchPromise = (async () => {
+    try {
+      // Step 1: Try to fetch existing profile
+      const { data: existing, error: fetchError } = await supabase
+        .from('perfis')
+        .select('id, nome, telefone, role, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
 
-  // Step 2: Create new profile
-  const nome = authUser.user_metadata?.full_name || authUser.user_metadata?.nome || authUser.email?.split('@')[0] || 'Usuário';
-  const telefone = authUser.user_metadata?.telefone || null;
-  const role: UserRole = (authUser.email && ADMIN_EMAILS.includes(authUser.email)) ? 'admin' : 'cliente';
-
-  const { data: created, error: insertError } = await supabase
-    .from('perfis')
-    .insert({ id: userId, nome, telefone, role, avatar_url: authUser.user_metadata?.avatar_url || null } as any)
-    .select('id, nome, telefone, role, avatar_url')
-    .maybeSingle();
-
-  if (insertError) {
-    // Race condition - try fetching again
-    const { data: retry } = await supabase
-      .from('perfis')
-      .select('id, nome, telefone, role, avatar_url')
-      .eq('id', userId)
-      .maybeSingle();
-    return retry ? applyAdminRole(retry as UserProfile, authUser.email) : null;
-  }
-
-  if (created) {
-    // Create cliente record in background (don't await, don't block login)
-    setTimeout(async () => {
-      try {
-        await supabase.from('clientes').insert({
-          id: userId,
-          nome,
-          telefone,
-          user_id: userId,
-        } as any);
-      } catch (_) {
-        // Ignore - may already exist
+      if (fetchError) {
+        console.error('Error fetching profile:', fetchError.message);
+        return null;
       }
-    }, 100);
-    return applyAdminRole(created as UserProfile, authUser.email);
-  }
 
-  return null;
+      if (existing) {
+        // Garantir que o registro de cliente existe (caso a trigger não tenha sido executada)
+        if (existing.role === 'cliente') {
+          setTimeout(async () => {
+            try {
+              await supabase.from('clientes').insert({
+                id: userId,
+                nome: existing.nome,
+                telefone: existing.telefone,
+                user_id: userId,
+              } as any).select().maybeSingle();
+            } catch (_) {
+              // Ignore - may already exist (ON CONFLICT handled by DB)
+            }
+          }, 200);
+        }
+        return applyAdminRole(existing as UserProfile, authUser.email);
+      }
+
+      // Step 2: Create new profile
+      const nome = authUser.user_metadata?.full_name || authUser.user_metadata?.nome || authUser.email?.split('@')[0] || 'Usuário';
+      const telefone = authUser.user_metadata?.telefone || null;
+      const role: UserRole = (authUser.email && ADMIN_EMAILS.includes(authUser.email)) ? 'admin' : 'cliente';
+
+      const { data: created, error: insertError } = await supabase
+        .from('perfis')
+        .insert({ id: userId, nome, telefone, role, avatar_url: authUser.user_metadata?.avatar_url || null } as any)
+        .select('id, nome, telefone, role, avatar_url')
+        .maybeSingle();
+
+      if (insertError) {
+        // Race condition - try fetching again
+        const { data: retry } = await supabase
+          .from('perfis')
+          .select('id, nome, telefone, role, avatar_url')
+          .eq('id', userId)
+          .maybeSingle();
+        return retry ? applyAdminRole(retry as UserProfile, authUser.email) : null;
+      }
+
+      if (created) {
+        // Create cliente record in background
+        setTimeout(async () => {
+          try {
+            await supabase.from('clientes').insert({
+              id: userId,
+              nome,
+              telefone,
+              user_id: userId,
+            } as any);
+          } catch (_) {
+            // Ignore
+          }
+        }, 100);
+        return applyAdminRole(created as UserProfile, authUser.email);
+      }
+
+      return null;
+    } finally {
+      // Limpar o cache após a conclusão (opcional, ou manter por um tempo)
+      // Aqui limpamos para permitir refreshProfile funcionar depois
+      delete profileCache[userId];
+    }
+  })();
+
+  profileCache[userId] = fetchPromise;
+  return fetchPromise;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -113,24 +132,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastFetchedUserId = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    const handleSession = async (session: Session | null) => {
+    const handleSession = async (currentSession: Session | null) => {
       if (!mounted) return;
 
-      setSession(session);
-      setUser(session?.user ?? null);
+      const currentUser = currentSession?.user ?? null;
+      
+      // Só atualiza estados básicos se houver mudança real
+      setSession(currentSession);
+      setUser(currentUser);
 
-      if (session?.user) {
-        const p = await fetchOrCreateProfile(session.user.id, session.user);
-        if (mounted) setProfile(p);
+      if (currentUser) {
+        // Evita buscar o perfil se já for o mesmo usuário e já tivermos o perfil
+        if (lastFetchedUserId.current === currentUser.id && profile) {
+          setLoading(false);
+          return;
+        }
+
+        lastFetchedUserId.current = currentUser.id;
+        const p = await fetchOrCreateProfile(currentUser.id, currentUser);
+        
+        if (mounted) {
+          setProfile(p);
+          setLoading(false);
+        }
       } else {
-        if (mounted) setProfile(null);
+        lastFetchedUserId.current = null;
+        if (mounted) {
+          setProfile(null);
+          setLoading(false);
+        }
       }
-
-      if (mounted) setLoading(false);
     };
 
     // Get current session first
@@ -141,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Then listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        // Evita processar eventos repetitivos se a sessão for a mesma
         handleSession(session);
       }
     );
@@ -149,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [profile]); // Adicionado profile como dependência para a lógica de skip funcionar corretamente
 
   const refreshProfile = async () => {
     if (!user) return;
@@ -188,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setUser(null);
     setSession(null);
+    lastFetchedUserId.current = null;
   };
 
   const resetPassword = async (email: string) => {
