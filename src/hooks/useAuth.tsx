@@ -40,14 +40,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
     
     let profileData = data as UserProfile | null;
-    const adminEmails = ['breno_fsa@yahoo.com', 'brennomoraisdev@gmail.com'];
-    if (!profileData && user?.email && adminEmails.includes(user.email)) {
+    const adminEmails = ['brennomoraisdev@gmail.com'];
+    const currentEmail = user?.email || session?.user?.email;
+
+    // If profile exists but role is wrong for admin email, fix it in-memory
+    if (profileData && currentEmail && adminEmails.includes(currentEmail) && profileData.role !== 'admin') {
+      // Try to update the role in the database
+      await (supabase.from('perfis') as any).update({ role: 'admin' }).eq('id', userId);
+      profileData = { ...profileData, role: 'admin' };
+    }
+
+    // Fallback: create virtual admin profile if no profile exists
+    if (!profileData && currentEmail && adminEmails.includes(currentEmail)) {
       profileData = {
         id: userId,
-        nome: user.user_metadata?.full_name || 'Admin',
-        telefone: user.user_metadata?.phone || '999999999',
+        nome: user?.user_metadata?.full_name || 'Admin',
+        telefone: user?.user_metadata?.phone || '999999999',
         role: 'admin',
-        avatar_url: user.user_metadata?.avatar_url || null
+        avatar_url: user?.user_metadata?.avatar_url || null
       };
     }
     setProfile(profileData);
