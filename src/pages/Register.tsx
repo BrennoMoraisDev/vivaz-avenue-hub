@@ -33,7 +33,7 @@ const Register = () => {
     if (error) {
       setError(error.message);
     } else {
-      navigate('/');
+      navigate('/cliente/dashboard', { replace: true });
     }
     setLoading(false);
   };

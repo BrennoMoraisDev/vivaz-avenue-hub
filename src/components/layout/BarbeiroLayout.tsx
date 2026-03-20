@@ -1,7 +1,7 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useNavigate } from 'react-router-dom';
 import DesktopSidebar from './DesktopSidebar';
 import MobileNav from './MobileNav';
-import { LayoutDashboard, CalendarDays, UserPlus, History, DollarSign, User, Lock, Loader2 } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, UserPlus, History, DollarSign, User, Lock, Loader2, ArrowLeft } from 'lucide-react';
 import { useBarbeiroProfile } from '@/hooks/useBarbeiro';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -17,6 +17,7 @@ const barbeiroNav = [
 const BarbeiroLayout = () => {
   const { profile: authProfile } = useAuth();
   const { barbeiro, loading } = useBarbeiroProfile();
+  const navigate = useNavigate();
 
   // Se for admin, permite acesso total sem restrição de status "ativo"
   const isAdmin = authProfile?.role === 'admin';
@@ -52,6 +53,18 @@ const BarbeiroLayout = () => {
     <div className="min-h-screen">
       <DesktopSidebar items={barbeiroNav} />
       <div className="md:pl-72">
+        {/* Botão de voltar para admin */}
+        {isAdmin && (
+          <div className="border-b border-border bg-card p-4">
+            <button
+              onClick={() => navigate('/admin/dashboard')}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Voltar para Admin
+            </button>
+          </div>
+        )}
         <main className="min-h-screen pb-20 md:pb-0">
           <Outlet />
         </main>

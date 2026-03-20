@@ -24,6 +24,7 @@ export interface AgendamentoCompleto {
   created_at: string;
   clientes: { nome: string | null; telefone: string | null } | null;
   servicos: { nome: string | null; preco: number | null; duracao_minutos: number | null } | null;
+  barbeiros: { nome: string | null } | null;
 }
 
 export interface ClienteBusca {
@@ -64,7 +65,7 @@ export function useAgendamentosDoDia(barbeiroId: string | undefined, data: strin
     setLoading(true);
     const { data: rows } = await supabase
       .from('agendamentos')
-      .select('*, clientes(nome, telefone), servicos(nome, preco, duracao_minutos)')
+      .select('*, clientes(nome, telefone), servicos(nome, preco, duracao_minutos), barbeiros(nome)')
       .eq('barbeiro_id', barbeiroId)
       .eq('data', data)
       .not('status', 'in', '("cancelado","faltou")')
@@ -101,7 +102,7 @@ export function useAgendamentosFiltrados(
     const doFetch = async () => {
       let query = supabase
         .from('agendamentos')
-        .select('*, clientes(nome, telefone), servicos(nome, preco, duracao_minutos)')
+        .select('*, clientes(nome, telefone), servicos(nome, preco, duracao_minutos), barbeiros(nome)')
         .eq('barbeiro_id', barbeiroId)
         .order('data', { ascending: false })
         .order('hora', { ascending: false });

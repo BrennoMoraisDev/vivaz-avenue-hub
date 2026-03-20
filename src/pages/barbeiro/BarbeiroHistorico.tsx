@@ -45,6 +45,7 @@ const BarbeiroHistorico = () => {
                 <TableHead>Horário</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Serviço</TableHead>
+                <TableHead>Barbeiro</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Comissão</TableHead>
                 <TableHead>Status</TableHead>
@@ -59,6 +60,7 @@ const BarbeiroHistorico = () => {
                     <TableCell>{a.hora?.slice(0, 5)}</TableCell>
                     <TableCell>{a.clientes?.nome || '—'}</TableCell>
                     <TableCell>{a.servicos?.nome || '—'}</TableCell>
+                    <TableCell>{a.barbeiros?.nome || '—'}</TableCell>
                     <TableCell>R$ {Number(preco).toFixed(2).replace('.', ',')}</TableCell>
                     <TableCell className="text-primary font-semibold">
                       R$ {(Number(preco) * comissaoRate).toFixed(2).replace('.', ',')}

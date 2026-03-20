@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function AgendaDayCard({ agendamento, onStatusChange }: Props) {
-  const { id, hora, status, clientes, servicos } = agendamento;
+  const { id, hora, status, clientes, servicos, barbeiros } = agendamento;
 
   return (
     <div className="glass rounded-2xl p-4 flex items-center justify-between gap-4">
@@ -23,6 +23,9 @@ export default function AgendaDayCard({ agendamento, onStatusChange }: Props) {
             {hora?.slice(0, 5)} — {clientes?.nome || 'Cliente'}
           </p>
           <p className="text-sm text-muted-foreground">{servicos?.nome || 'Serviço'}</p>
+          {barbeiros?.nome && (
+            <p className="text-xs text-muted-foreground/70">Barbeiro: {barbeiros.nome}</p>
+          )}
           {servicos?.preco && (
             <p className="text-xs text-primary font-semibold">
               R$ {Number(servicos.preco).toFixed(2).replace('.', ',')}

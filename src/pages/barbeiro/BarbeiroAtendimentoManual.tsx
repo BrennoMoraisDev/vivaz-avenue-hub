@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import ClienteSearchInput from '@/components/barbeiro/ClienteSearchInput';
 import { useBarbeiroProfile, criarAtendimentoManual, criarCliente, ClienteBusca } from '@/hooks/useBarbeiro';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,10 +19,18 @@ interface Servico {
   preco: number | null;
 }
 
+interface Barbeiro {
+  id: string;
+  nome: string | null;
+}
+
 const BarbeiroAtendimentoManual = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { barbeiro, loading: loadB } = useBarbeiroProfile();
   const [servicos, setServicos] = useState<Servico[]>([]);
+  const [barbeiros, setBarbeiros] = useState<Barbeiro[]>([]);
+  const [barbeiroSelecionado, setBarbeiroSelecionado] = useState<string>('');
   const [clienteSelecionado, setClienteSelecionado] = useState<ClienteBusca | null>(null);
   const [novoCliente, setNovoCliente] = useState(false);
   const [nomeNovo, setNomeNovo] = useState('');
@@ -33,6 +42,7 @@ const BarbeiroAtendimentoManual = () => {
   });
   const [obs, setObs] = useState('');
   const [saving, setSaving] = useState(false);
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     supabase.from('servicos').select('id, nome, preco').eq('ativo', true).then(({ data }) => {
@@ -40,8 +50,25 @@ const BarbeiroAtendimentoManual = () => {
     });
   }, []);
 
+  // Carregar barbeiros se for admin
+  useEffect(() => {
+    if (isAdmin) {
+      supabase.from('barbeiros').select('id, nome').eq('ativo', true).then(({ data }) => {
+        setBarbeiros((data as Barbeiro[]) || []);
+      });
+    }
+  }, [isAdmin]);
+
+  // Definir barbeiro padrão quando carregar
+  useEffect(() => {
+    if (!isAdmin && barbeiro && !barbeiroSelecionado) {
+      setBarbeiroSelecionado(barbeiro.id);
+    }
+  }, [barbeiro, isAdmin, barbeiroSelecionado]);
+
   const handleSave = async () => {
-    if (!barbeiro) return;
+    const barbeiroIdToUse = isAdmin && barbeiroSelecionado ? barbeiroSelecionado : barbeiro?.id;
+    if (!barbeiroIdToUse) return;
     setSaving(true);
 
     let clienteId = clienteSelecionado?.id;
@@ -67,9 +94,15 @@ const BarbeiroAtendimentoManual = () => {
       return;
     }
 
+    if (isAdmin && !barbeiroSelecionado) {
+      toast({ title: 'Selecione o barbeiro', variant: 'destructive' });
+      setSaving(false);
+      return;
+    }
+
     const { error } = await criarAtendimentoManual({
       clienteId,
-      barbeiroId: barbeiro.id,
+      barbeiroId: barbeiroIdToUse,
       servicoId,
       data: new Date().toISOString().split('T')[0],
       hora,
@@ -94,6 +127,25 @@ const BarbeiroAtendimentoManual = () => {
   return (
     <PageContainer title="Atendimento Manual" subtitle="Registre um atendimento sem agendamento prévio">
       <div className="glass rounded-2xl p-6 max-w-xl space-y-5">
+        {/* Barbeiro (apenas para admin) */}
+        {isAdmin && (
+          <div className="space-y-2">
+            <Label>Barbeiro</Label>
+            <Select value={barbeiroSelecionado} onValueChange={setBarbeiroSelecionado}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o barbeiro" />
+              </SelectTrigger>
+              <SelectContent>
+                {barbeiros.map(b => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Cliente */}
         <div className="space-y-2">
           <Label>Cliente</Label>
