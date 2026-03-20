@@ -16,7 +16,9 @@ const Login = () => {
   // Se já está logado e tem perfil, redireciona para o dashboard correto
   useEffect(() => {
     if (user && profile) {
-      navigate(getRoleHome(profile.role), { replace: true });
+      getRoleHome(profile.role, user.id).then(path => {
+        navigate(path, { replace: true });
+      });
     }
   }, [user, profile, navigate]);
 
