@@ -1,25 +1,46 @@
+import { useState, useEffect } from 'react';
 import heroBg from '@/assets/hero-bg.jpg';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { getRoleHome } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Scissors, Star, Clock, Crown, Phone, MapPin, Instagram, MessageCircle } from 'lucide-react';
+import { CalendarDays, Scissors, Star, Clock, Crown, Phone, MapPin, Instagram, MessageCircle, Facebook, ExternalLink } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useConfiguracoes } from '@/hooks/useConfiguracoes';
 
-const mockServices = [
-  { name: 'Corte Premium', price: 'R$ 60', duration: '45 min', desc: 'Corte moderno com acabamento perfeito' },
-  { name: 'Barba Completa', price: 'R$ 45', duration: '30 min', desc: 'Barba modelada com toalha quente' },
-  { name: 'Combo VIP', price: 'R$ 90', duration: '1h15', desc: 'Corte + barba + hidratação capilar' },
-];
+interface Servico {
+  id: string;
+  nome: string;
+  preco: number;
+  duracao_minutos: number;
+  descricao: string | null;
+}
 
-const mockBarbers = [
-  { name: 'Rafael Silva', specialty: 'Cortes Degradê', initials: 'RS' },
-  { name: 'Lucas Mendes', specialty: 'Barba & Bigode', initials: 'LM' },
-  { name: 'André Costa', specialty: 'Cortes Clássicos', initials: 'AC' },
-];
+interface Barbeiro {
+  id: string;
+  nome: string;
+  especialidade: string | null;
+  foto_url: string | null;
+}
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { configs, loading: configLoading } = useConfiguracoes();
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [barbeiros, setBarbeiros] = useState<Barbeiro[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const [sRes, bRes] = await Promise.all([
+        (supabase.from('servicos') as any).select('id, nome, preco, duracao_minutos, descricao').eq('ativo', true).limit(6),
+        (supabase.from('barbeiros') as any).select('id, nome, especialidade, foto_url').eq('ativo', true).limit(6),
+      ]);
+      if (sRes.data) setServicos(sRes.data);
+      if (bRes.data) setBarbeiros(bRes.data);
+    };
+    fetchData();
+  }, []);
 
   const handleCTA = () => {
     if (user && profile) {
@@ -28,6 +49,15 @@ const Index = () => {
       navigate('/login');
     }
   };
+
+  const getInitials = (name: string) =>
+    name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+  const formatPrice = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+  const formatDuration = (min: number) =>
+    min >= 60 ? `${Math.floor(min / 60)}h${min % 60 > 0 ? min % 60 + 'min' : ''}` : `${min} min`;
 
   return (
     <div className="flex flex-col">
@@ -103,57 +133,69 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Services */}
-      <section id="servicos" className="py-20 border-t border-border/50">
-        <div className="container">
-          <div className="mb-14 text-center">
-            <span className="font-body text-[11px] uppercase tracking-[0.4em] text-primary/70">Nossos serviços</span>
-            <h2 className="mt-3 font-heading text-3xl font-bold text-foreground sm:text-4xl">
-              Serviços em <span className="text-gradient-gold">Destaque</span>
-            </h2>
-          </div>
+      {/* Services - only if there are real services */}
+      {servicos.length > 0 && (
+        <section id="servicos" className="py-20 border-t border-border/50">
+          <div className="container">
+            <div className="mb-14 text-center">
+              <span className="font-body text-[11px] uppercase tracking-[0.4em] text-primary/70">Nossos serviços</span>
+              <h2 className="mt-3 font-heading text-3xl font-bold text-foreground sm:text-4xl">
+                Serviços em <span className="text-gradient-gold">Destaque</span>
+              </h2>
+            </div>
 
-          <div className="grid gap-6 sm:grid-cols-3">
-            {mockServices.map((service) => (
-              <div key={service.name} className="glass rounded-2xl p-8 transition-all duration-300 hover:shadow-gold group">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-heading text-lg font-semibold text-foreground">{service.name}</h3>
-                  <span className="font-heading text-lg font-bold text-primary">{service.price}</span>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {servicos.map((service) => (
+                <div key={service.id} className="glass rounded-2xl p-8 transition-all duration-300 hover:shadow-gold group">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="font-heading text-lg font-semibold text-foreground">{service.nome}</h3>
+                    <span className="font-heading text-lg font-bold text-primary">{formatPrice(service.preco)}</span>
+                  </div>
+                  {service.descricao && (
+                    <p className="mb-4 text-sm text-muted-foreground">{service.descricao}</p>
+                  )}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock size={12} />
+                    <span>{formatDuration(service.duracao_minutos)}</span>
+                  </div>
                 </div>
-                <p className="mb-4 text-sm text-muted-foreground">{service.desc}</p>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock size={12} />
-                  <span>{service.duration}</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Barbers */}
-      <section className="py-20 border-t border-border/50">
-        <div className="container">
-          <div className="mb-14 text-center">
-            <span className="font-body text-[11px] uppercase tracking-[0.4em] text-primary/70">Nossa equipe</span>
-            <h2 className="mt-3 font-heading text-3xl font-bold text-foreground sm:text-4xl">
-              Barbeiros <span className="text-gradient-gold">Especialistas</span>
-            </h2>
-          </div>
+      {/* Barbers - only if there are real barbers */}
+      {barbeiros.length > 0 && (
+        <section className="py-20 border-t border-border/50">
+          <div className="container">
+            <div className="mb-14 text-center">
+              <span className="font-body text-[11px] uppercase tracking-[0.4em] text-primary/70">Nossa equipe</span>
+              <h2 className="mt-3 font-heading text-3xl font-bold text-foreground sm:text-4xl">
+                Barbeiros <span className="text-gradient-gold">Especialistas</span>
+              </h2>
+            </div>
 
-          <div className="grid gap-6 sm:grid-cols-3">
-            {mockBarbers.map((barber) => (
-              <div key={barber.name} className="glass rounded-2xl p-8 text-center transition-all duration-300 hover:shadow-gold">
-                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
-                  {barber.initials}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {barbeiros.map((barber) => (
+                <div key={barber.id} className="glass rounded-2xl p-8 text-center transition-all duration-300 hover:shadow-gold">
+                  {barber.foto_url ? (
+                    <img src={barber.foto_url} alt={barber.nome} className="mx-auto mb-4 h-20 w-20 rounded-full object-cover border-2 border-primary/20" />
+                  ) : (
+                    <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
+                      {getInitials(barber.nome)}
+                    </div>
+                  )}
+                  <h3 className="font-heading text-lg font-semibold text-foreground">{barber.nome}</h3>
+                  {barber.especialidade && (
+                    <p className="mt-1 text-sm text-muted-foreground">{barber.especialidade}</p>
+                  )}
                 </div>
-                <h3 className="font-heading text-lg font-semibold text-foreground">{barber.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{barber.specialty}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="relative overflow-hidden border-t border-border/50 py-20">
@@ -172,7 +214,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer - uses real config data */}
       <footer className="border-t border-border/50 py-12">
         <div className="container">
           <div className="grid gap-8 sm:grid-cols-3">
@@ -183,24 +225,54 @@ const Index = () => {
             <div>
               <h4 className="font-heading text-sm font-semibold text-foreground mb-3">Contato</h4>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2"><Phone size={14} className="text-primary" /> (00) 00000-0000</div>
-                <div className="flex items-center gap-2"><MapPin size={14} className="text-primary" /> Endereço da barbearia</div>
+                {configs.telefone && (
+                  <a href={`tel:${configs.telefone}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <Phone size={14} className="text-primary" /> {configs.telefone}
+                  </a>
+                )}
+                {configs.whatsapp_numero && (
+                  <a href={`https://wa.me/${configs.whatsapp_numero}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <MessageCircle size={14} className="text-primary" /> WhatsApp
+                  </a>
+                )}
+                {configs.email && (
+                  <a href={`mailto:${configs.email}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <ExternalLink size={14} className="text-primary" /> {configs.email}
+                  </a>
+                )}
+                {configs.endereco && (
+                  <div className="flex items-center gap-2">
+                    <MapPin size={14} className="text-primary shrink-0" /> {configs.endereco}
+                  </div>
+                )}
               </div>
             </div>
             <div>
               <h4 className="font-heading text-sm font-semibold text-foreground mb-3">Redes sociais</h4>
               <div className="flex gap-3">
-                <a href="#" className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground transition-all hover:border-primary hover:text-primary">
-                  <Instagram size={18} />
-                </a>
-                <a href="#" className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground transition-all hover:border-primary hover:text-primary">
-                  <MessageCircle size={18} />
-                </a>
+                {configs.instagram_url && (
+                  <a href={configs.instagram_url} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground transition-all hover:border-primary hover:text-primary">
+                    <Instagram size={18} />
+                  </a>
+                )}
+                {configs.facebook_url && (
+                  <a href={configs.facebook_url} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground transition-all hover:border-primary hover:text-primary">
+                    <Facebook size={18} />
+                  </a>
+                )}
+                {configs.whatsapp_numero && (
+                  <a href={`https://wa.me/${configs.whatsapp_numero}`} target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground transition-all hover:border-primary hover:text-primary">
+                    <MessageCircle size={18} />
+                  </a>
+                )}
+                {!configs.instagram_url && !configs.facebook_url && !configs.whatsapp_numero && (
+                  <p className="text-xs text-muted-foreground">Nenhuma rede social configurada</p>
+                )}
               </div>
             </div>
           </div>
           <div className="mt-8 border-t border-border/50 pt-6 text-center text-xs text-muted-foreground">
-            © 2026 Vivaz Barbearia Avenue. Todos os direitos reservados.
+            © {new Date().getFullYear()} {configs.nome_barbearia || 'Vivaz Barbearia Avenue'}. Todos os direitos reservados.
           </div>
         </div>
       </footer>

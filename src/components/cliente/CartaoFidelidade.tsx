@@ -1,11 +1,16 @@
 import { motion } from 'framer-motion';
 import { Star, Gift, Scissors, Trophy } from 'lucide-react';
 import { useFidelidade } from '@/hooks/useFidelidade';
+import { useConfiguracoes } from '@/hooks/useConfiguracoes';
 
 export function CartaoFidelidade() {
   const { resumo, loading } = useFidelidade();
+  const { fidelidadeAtivo, loading: configLoading } = useConfiguracoes();
 
-  if (loading) {
+  // Don't render anything if fidelidade is disabled by admin
+  if (!configLoading && !fidelidadeAtivo) return null;
+
+  if (loading || configLoading) {
     return (
       <div className="glass rounded-2xl p-5 space-y-3">
         <div className="skeleton-pulse h-5 w-32 rounded" />
@@ -28,12 +33,10 @@ export function CartaoFidelidade() {
         border: '1px solid hsl(43 65% 52% / 0.25)',
       }}
     >
-      {/* Decoração de fundo */}
       <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/5" />
       <div className="absolute -right-2 -bottom-8 h-32 w-32 rounded-full bg-primary/5" />
 
       <div className="relative z-10">
-        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15">
@@ -56,23 +59,18 @@ export function CartaoFidelidade() {
           )}
         </div>
 
-        {/* Pontos */}
         <div className="mb-4">
           <div className="flex items-baseline gap-1">
-            <span className="font-heading text-3xl font-bold text-primary">
-              {cortesNaCicloAtual}
-            </span>
+            <span className="font-heading text-3xl font-bold text-primary">{cortesNaCicloAtual}</span>
             <span className="text-sm text-muted-foreground">/ {resumo.meta_proximo_resgate} cortes</span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {podeResgatar
               ? 'Você tem um corte grátis disponível!'
-              : `Faltam ${resumo.meta_proximo_resgate - cortesNaCicloAtual} corte${resumo.meta_proximo_resgate - cortesNaCicloAtual !== 1 ? 's' : ''} para o próximo brinde`
-            }
+              : `Faltam ${resumo.meta_proximo_resgate - cortesNaCicloAtual} corte${resumo.meta_proximo_resgate - cortesNaCicloAtual !== 1 ? 's' : ''} para o próximo brinde`}
           </p>
         </div>
 
-        {/* Barra de progresso */}
         <div className="mb-4">
           <div className="h-2 w-full rounded-full bg-primary/10 overflow-hidden">
             <motion.div
@@ -84,7 +82,6 @@ export function CartaoFidelidade() {
           </div>
         </div>
 
-        {/* Ícones de cortes */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {Array.from({ length: resumo.meta_proximo_resgate }).map((_, i) => (
             <motion.div
@@ -100,11 +97,7 @@ export function CartaoFidelidade() {
                   : 'bg-muted/50 text-muted-foreground/30'
               }`}
             >
-              {i === resumo.meta_proximo_resgate - 1 ? (
-                <Trophy size={13} />
-              ) : (
-                <Scissors size={11} />
-              )}
+              {i === resumo.meta_proximo_resgate - 1 ? <Trophy size={13} /> : <Scissors size={11} />}
             </motion.div>
           ))}
         </div>
