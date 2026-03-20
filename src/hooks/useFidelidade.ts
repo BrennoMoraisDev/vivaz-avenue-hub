@@ -40,11 +40,12 @@ export function useFidelidade() {
 
     try {
       // Busca configuração da meta
-      const { data: configData } = await supabase
+      const { data: configRows } = await supabase
         .from('configuracoes')
         .select('valor')
-        .eq('chave', 'fidelidade_pontos_para_resgate')
-        .single();
+        .eq('chave', 'fidelidade_pontos_para_resgate');
+
+      const configData = configRows && configRows.length > 0 ? configRows[0] : null;
 
       const meta = configData ? parseInt((configData as any).valor) : META_PADRAO;
 

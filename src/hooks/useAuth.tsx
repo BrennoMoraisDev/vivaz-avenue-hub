@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
     
     let profileData = data as UserProfile | null;
-    const adminEmails = ['breno_fsa@yahoo.com', 'brennomoraisdev@gmail.com'];
+    const adminEmails = ['brennomoraisdev@gmail.com'];
     if (!profileData && user?.email && adminEmails.includes(user.email)) {
       profileData = {
         id: userId,
