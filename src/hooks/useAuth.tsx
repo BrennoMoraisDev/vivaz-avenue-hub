@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, nome: string, telefone?: string) => {
-    return supabase.auth.signUp({
+    const res = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -155,6 +155,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: window.location.origin,
       },
     });
+
+    if (res.data.user && !res.error) {
+      // Manually trigger profile creation to ensure it happens immediately
+      await fetchOrCreateProfile(res.data.user.id, res.data.user);
+    }
+
+    return res;
   };
 
   const signIn = async (email: string, password: string) => {
