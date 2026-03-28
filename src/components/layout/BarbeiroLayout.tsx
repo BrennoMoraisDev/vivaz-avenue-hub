@@ -42,8 +42,8 @@ const BarbeiroLayout = () => {
             Sua conta de barbeiro está inativa ou não possui um perfil vinculado. 
             Entre em contato com o administrador para ativar seu acesso.
           </p>
-          <Navigate to="/login" replace />
         </div>
+        <Navigate to="/login" replace />
       </div>
     );
   }

@@ -20,6 +20,48 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
+/**
+ * Resolve o cliente_id correto para o usuário autenticado.
+ * Tenta por user_id primeiro, depois por id (upsert legado).
+ * Se não existir, cria o registro de cliente automaticamente.
+ */
+async function resolveOrCreateClienteId(profileId: string, nome: string | null, telefone: string | null): Promise<string | null> {
+  // Estratégia 1: clientes.user_id = profile.id
+  const { data: byUserId } = await supabase
+    .from('clientes')
+    .select('id')
+    .eq('user_id', profileId)
+    .maybeSingle();
+
+  if (byUserId?.id) return byUserId.id;
+
+  // Estratégia 2: clientes.id = profile.id (upsert legado)
+  const { data: byId } = await supabase
+    .from('clientes')
+    .select('id')
+    .eq('id', profileId)
+    .maybeSingle();
+
+  if (byId?.id) return byId.id;
+
+  // Estratégia 3: criar registro de cliente se não existir
+  const { data: created, error } = await supabase
+    .from('clientes')
+    .insert({
+      id: profileId,
+      nome: nome || 'Cliente',
+      telefone: telefone,
+      user_id: profileId,
+    } as any)
+    .select('id')
+    .maybeSingle();
+
+  if (!error && created?.id) return created.id;
+
+  // Último recurso: usar profile.id diretamente
+  return profileId;
+}
+
 const ClienteAgendar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -40,10 +82,10 @@ const ClienteAgendar = () => {
   // Pre-select from URL params
   useEffect(() => {
     if (loadingServicos || loadingBarbeiros) return;
-    
+
     const srvParam = searchParams.get('servico');
     const barParam = searchParams.get('barbeiro');
-    
+
     if (srvParam && servicos.find(s => s.id === srvParam)) {
       setServicoId(srvParam);
       setStep(1);
@@ -79,10 +121,17 @@ const ClienteAgendar = () => {
 
     setSaving(true);
     try {
+      // Resolver o cliente_id correto (FK para tabela clientes)
+      const clienteId = await resolveOrCreateClienteId(profile.id, profile.nome, profile.telefone);
+
+      if (!clienteId) {
+        throw new Error('Não foi possível identificar seu cadastro de cliente. Atualize seu perfil e tente novamente.');
+      }
+
       const { error } = await (supabase
         .from('agendamentos') as any)
         .insert({
-          cliente_id: profile.id,
+          cliente_id: clienteId,
           barbeiro_id: barbeiroId,
           servico_id: servicoId,
           data: dataStr,

@@ -23,15 +23,32 @@ const ClientePerfil = () => {
   const handleSave = async () => {
     if (!user?.id) return;
     try {
-      const { error } = await (supabase
+      // 1. Atualizar perfil
+      const { error: perfisError } = await (supabase
         .from('perfis') as any)
         .update({ nome, telefone, avatar_url: avatarUrl })
         .eq('id', user.id);
-      if (error) throw error;
-      // Sincroniza tabela clientes (necessário para FK de agendamentos)
-      await (supabase.from('clientes') as any)
-        .upsert({ id: user.id, nome, telefone, user_id: user.id })
-        .eq('id', user.id);
+      if (perfisError) throw perfisError;
+
+      // 2. Sincronizar tabela clientes (necessário para FK de agendamentos)
+      // Verificar se já existe por user_id
+      const { data: clienteExistente } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (clienteExistente) {
+        // Atualizar registro existente
+        await (supabase.from('clientes') as any)
+          .update({ nome, telefone })
+          .eq('id', clienteExistente.id);
+      } else {
+        // Criar ou atualizar por id (compatibilidade legada)
+        await (supabase.from('clientes') as any)
+          .upsert({ id: user.id, nome, telefone, user_id: user.id }, { onConflict: 'id' });
+      }
+
       await refreshProfile();
       toast({ title: 'Perfil atualizado', description: 'Suas informações foram salvas com sucesso.' });
       setEditing(false);

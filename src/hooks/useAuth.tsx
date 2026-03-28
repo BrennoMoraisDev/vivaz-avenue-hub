@@ -64,6 +64,7 @@ async function fetchOrCreateProfile(userId: string, authUser: User): Promise<Use
     .maybeSingle();
 
   if (insertError) {
+    console.error('Error creating profile:', insertError.message);
     // Race condition - try fetching again
     const { data: retry } = await supabase
       .from('perfis')
@@ -74,23 +75,55 @@ async function fetchOrCreateProfile(userId: string, authUser: User): Promise<Use
   }
 
   if (created) {
-    // Create cliente record in background (don't await, don't block login)
-    setTimeout(async () => {
-      try {
-        await supabase.from('clientes').insert({
-          id: userId,
-          nome,
-          telefone,
-          user_id: userId,
-        } as any);
-      } catch (_) {
-        // Ignore - may already exist
-      }
-    }, 100);
+    // Criar registro de cliente em background (não bloquear o login)
+    ensureClienteRecord(userId, nome, telefone);
     return applyAdminRole(created as UserProfile, authUser.email);
   }
 
   return null;
+}
+
+/**
+ * Garante que existe um registro na tabela `clientes` para o usuário.
+ * Usa upsert para evitar duplicatas. Não bloqueia o fluxo de login.
+ */
+async function ensureClienteRecord(userId: string, nome: string | null, telefone: string | null) {
+  try {
+    // Verificar se já existe por user_id
+    const { data: existing } = await supabase
+      .from('clientes')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existing) return; // já existe
+
+    // Verificar se já existe por id (upsert legado)
+    const { data: existingById } = await supabase
+      .from('clientes')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (existingById) {
+      // Atualizar user_id se estiver faltando
+      await supabase
+        .from('clientes')
+        .update({ user_id: userId } as any)
+        .eq('id', userId);
+      return;
+    }
+
+    // Criar novo registro de cliente
+    await supabase.from('clientes').insert({
+      id: userId,
+      nome,
+      telefone,
+      user_id: userId,
+    } as any);
+  } catch (err) {
+    console.error('ensureClienteRecord error:', err);
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -157,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (res.data.user && !res.error) {
-      // Manually trigger profile creation to ensure it happens immediately
+      // Criar perfil manualmente (caso o trigger esteja com problema)
       await fetchOrCreateProfile(res.data.user.id, res.data.user);
     }
 
