@@ -18,13 +18,11 @@ const ClienteLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirecionar para perfil no primeiro acesso se telefone não estiver preenchido
-  // Admin não precisa de telefone para acessar área cliente
+  // Removido redirecionamento forçado para permitir navegação livre
+  // O telefone será solicitado apenas se necessário no momento do agendamento
   useEffect(() => {
-    if (profile && profile.role !== 'admin' && !profile.telefone && !location.pathname.includes('/perfil')) {
-      navigate('/cliente/perfil', { replace: true });
-    }
-  }, [profile, location.pathname, navigate]);
+    // Apenas log de depuração se necessário
+  }, [profile, location.pathname]);
 
   return (
     <div className="min-h-screen">

@@ -49,6 +49,10 @@ async function fetchOrCreateProfile(userId: string, authUser: User): Promise<Use
   }
 
   if (existing) {
+    // Garantir que o cliente exista se o perfil já existe
+    if (existing.role === 'cliente') {
+      ensureClienteRecord(userId, existing.nome, existing.telefone);
+    }
     return applyAdminRole(existing as UserProfile, authUser.email);
   }
 
@@ -71,12 +75,18 @@ async function fetchOrCreateProfile(userId: string, authUser: User): Promise<Use
       .select('id, nome, telefone, role, avatar_url')
       .eq('id', userId)
       .maybeSingle();
+    
+    if (retry && retry.role === 'cliente') {
+      ensureClienteRecord(userId, retry.nome, retry.telefone);
+    }
     return retry ? applyAdminRole(retry as UserProfile, authUser.email) : null;
   }
 
   if (created) {
-    // Criar registro de cliente em background (não bloquear o login)
-    ensureClienteRecord(userId, nome, telefone);
+    // Criar registro de cliente imediatamente para evitar erros de navegação
+    if (created.role === 'cliente') {
+      await ensureClienteRecord(userId, nome, telefone);
+    }
     return applyAdminRole(created as UserProfile, authUser.email);
   }
 
@@ -85,7 +95,7 @@ async function fetchOrCreateProfile(userId: string, authUser: User): Promise<Use
 
 /**
  * Garante que existe um registro na tabela `clientes` para o usuário.
- * Usa upsert para evitar duplicatas. Não bloqueia o fluxo de login.
+ * Usa upsert para evitar duplicatas.
  */
 async function ensureClienteRecord(userId: string, nome: string | null, telefone: string | null) {
   try {
